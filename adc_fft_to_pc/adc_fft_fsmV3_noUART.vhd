@@ -103,6 +103,7 @@ begin
 			fft_rst <= '1';
 			-- wait for run command
 			if state = 0 then 
+				finished <= '0';
 				ram1_addra_s <= (others => '0');
 				ram2_addra_s <= (others => '0');
 				ram2_rst <= '0';
