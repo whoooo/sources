@@ -23,16 +23,6 @@ process(clk, rxbyte_ready)
 begin
 	if rising_edge(clk) then
 		if rxbyte_ready = '1' then
-			-- set nfft of fft ip core. see page 45 of xilinx fft documentation
-			fft_points <= rxbyte_in(4 downto 0); 
-			-- use preinitialized values if 1
-			ram_initialized <= rxbyte_in(5);
-			-- set sample rate to 40kHz if bit 6 if 0, 100kHz if 1
-			if rxbyte_in(6) = '0' then
-				sample_rate <= 40;
-			else
-				sample_rate <= 100;
-			end if;
 			-- run if bit 7 is 1, rst if 0
 			if rxbyte_in(7) = '0' then
 				rst <= '1';
@@ -41,6 +31,16 @@ begin
 				rst <= '0';
 				run <= '1';
 			end if;
+			-- set nfft of fft ip core. see page 45 of xilinx fft documentation
+			fft_points <= rxbyte_in(4 downto 0); 
+			-- set sample rate to 40kHz if bit 6 if 0, 100kHz if 1
+			if rxbyte_in(6) = '0' then
+				sample_rate <= 40;
+			else
+				sample_rate <= 100;
+			end if;
+			-- use preinitialized values if 1
+			ram_initialized <= rxbyte_in(5);
 			-- set number of samples to capture or max read address if using pre initialized values
 			if rxbyte_in(4 downto 0) = "01001" then -- 512
 				n_samples <= 512;

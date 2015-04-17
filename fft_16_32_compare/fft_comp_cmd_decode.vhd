@@ -10,8 +10,8 @@ entity fft_comp_cmd_decode is
 		rst : out std_logic;
 		fft_points : out std_logic_vector(4 downto 0);
 		n_samples : out natural;
-		sample_rate : out natural;
 		init_max_addr : out natural;
+		zeropad : out std_logic;
 		ram_initialized : out std_logic);
 end fft_comp_cmd_decode;
 
@@ -25,14 +25,10 @@ begin
 		if rxbyte_ready = '1' then
 			-- set nfft of fft ip core. see page 45 of xilinx fft documentation
 			fft_points <= rxbyte_in(4 downto 0); 
+			-- zero pad to twice original length if 1
+			zeropad <= rxbyte_in(5);
 			-- use preinitialized values if 1
-			ram_initialized <= rxbyte_in(5);
-			-- set sample rate to 40kHz if bit 6 if 0, 100kHz if 1
-			if rxbyte_in(6) = '0' then
-				sample_rate <= 40;
-			else
-				sample_rate <= 100;
-			end if;
+			ram_initialized <= rxbyte_in(6);			
 			-- run if bit 7 is 1, rst if 0
 			if rxbyte_in(7) = '0' then
 				rst <= '1';
