@@ -35,9 +35,9 @@ entity adc_fft_fsmV3 is
     		fsm_state : out natural; -- fsm state for debugging
         	run : in std_logic; -- begin state machine
         	rst : in std_logic; -- reset state machine
-			finished : out std_logic; -- alert downstream logic that fft data is ready
         	--adc ports
     		busy : in std_logic; -- ad976 busy signal
+    		cs : out std_logic; -- tie low to control adc with rc
     		rc : out std_logic; -- tells adc to start conversion when held low for >=50ns
     		-- ram ports
        		ram1_rst : out std_logic; -- reset contents of ram. used before taking data from adc
@@ -46,7 +46,7 @@ entity adc_fft_fsmV3 is
     		ram2_rst : out std_logic;
     		ram2_wea : out STD_LOGIC_VECTOR(0 DOWNTO 0);
     		ram2_addra : out STD_LOGIC_VECTOR(12 DOWNTO 0);
---            fft_ram_data : in std_logic_vector(31 downto 0); -- fft output data stored in ram.
+            fft_ram_data : in std_logic_vector(31 downto 0); -- fft output data stored in ram.
     		-- fft ports
        		fft_rst : out std_logic; --active low reset, must be held low for 2 cycles
     	  	s_axis_config_tdata : out STD_LOGIC_VECTOR(15 DOWNTO 0); -- config for fft. (8:8) = fww/reverse, (4:0) = nfft
@@ -57,7 +57,11 @@ entity adc_fft_fsmV3 is
     	  	s_axis_data_tlast : out  STD_LOGIC; -- asserted by master on last sample being sent to fft
     	  	m_axis_data_tvalid : in STD_LOGIC; -- asserted by fft to signal that it's ready to provide output data
     	  	m_axis_data_tready : out STD_LOGIC; -- asserted by external unit to signal that it's ready for output data
-    	  	m_axis_data_tlast : in STD_LOGIC); -- asserted by fft on last sample being sent out
+    	  	m_axis_data_tlast : in STD_LOGIC; -- asserted by fft on last sample being sent out
+    	  	-- uart ports
+    	  	txfinished : in std_logic;
+    	  	uart_data : out std_logic_vector(31 downto 0); -- data to send via uart
+    	  	txready : out std_logic);
 end adc_fft_fsmV3;
 
 architecture Behavioral of adc_fft_fsmV3 is
@@ -70,12 +74,13 @@ signal counts_per_sample : natural range 50 to 5000 := 50;
 signal dout : std_logic_vector(26 downto 0) := (others => '0');
 
 attribute keep : string;
---attribute keep of uart_data : signal is "true";
+attribute keep of uart_data : signal is "true";
 attribute keep of ram1_max_addr : signal is "true";
 attribute keep of state : signal is "true";
 
 begin
 
+	cs <= '0';
 	ram1_addra <= ram1_addra_s;
 	ram2_addra <= ram2_addra_s;
 	fsm_state <= state;
@@ -85,13 +90,12 @@ begin
 	process(clk, run, rst)
 		begin
 		if rst = '1' then
-			finished <= '0';
 			ram1_wea <= "0";
 			ram2_wea <= "0";
 			ram1_addra_s <= (others => '0');
 			ram2_addra_s <= (others => '0');
 			ram2_rst <= '1';
---			txready <= '0';
+			txready <= '0';
 			state <= 0;
 			rc <= '1';
 			clk_counter <= 0;
@@ -103,10 +107,10 @@ begin
 			fft_rst <= '1';
 			-- wait for run command
 			if state = 0 then 
-				finished <= '0';
 				ram1_addra_s <= (others => '0');
 				ram2_addra_s <= (others => '0');
 				ram2_rst <= '0';
+				ram2_wea <= "0";
 				fft_config(8) <= '1'; -- fwd fft
 				fft_config(7 downto 5) <= "000"; -- filler data
 				fft_config(4 downto 0) <= fft_points; -- n points for fft				
@@ -203,26 +207,65 @@ begin
 				s_axis_data_tvalid <= '0';
 				m_axis_data_tready <= '1';
 				ram2_wea <= "1";
-				state <= 10;
+				state <= 11;
 				
 			-- END SEND DATA TO FFT *************************************************************
 			-- BEGIN SAVING FFT DATA *************************************************************
 								
 			-- save FFT data to blk_mem_gen_1. save values to ram as long as tvalid is high. if it goes low,
 			-- disable write enable to ram and wait for tvalid to go high again.
-			elsif state = 10 then
+			
+			-- elsif state = 10 then
+				-- if m_axis_data_tvalid = '1' then
+					-- ram2_wea <= "1";
+					-- state <= 11;
+				-- else
+					-- state <= 10;
+				-- end if;
+				
+			elsif state = 11 then
 				if m_axis_data_tvalid = '1' then
 					ram2_wea <= "1";
 					ram2_addra_s <= std_logic_vector(unsigned(ram2_addra_s) + 1);
 					if m_axis_data_tlast = '1' then	
 						finished <= '1';
-						state <= 0;
+						state <= 12;
 					else
-						state <= 10;
+						state <= 11;
 					end if;
 				else
 					ram2_wea <= "0";
-					state <= 10;
+					state <= 11;
+				end if;
+				
+			-- END SAVING FFT DATA *************************************************************
+			-- BEGIN SENDING FFT DATA *************************************************************
+	
+			-- prepare to send data via uart
+			elsif state = 12 then
+				m_axis_data_tready <= '0';
+				ram2_wea <= "0";
+				ram2_addra_s <= (others => '0');
+				uart_data <= fft_ram_data;
+--				uart_data(26 downto 0) <= fft_ram_data(15 downto 0);
+				state <= 13;
+			-- send real and imaginary parts together
+			elsif state = 13 then			
+				if ram2_addra_s = std_logic_vector(unsigned(ram2_max_addr) + 1) then
+					state <= 0;
+				else 				
+					txready <= '1';
+					state <= 14;
+				end if;
+			elsif state = 14 then
+				txready <= '0';
+				if txfinished = '1' then
+					ram2_addra_s <= std_logic_vector(unsigned(ram2_addra_s) + 1);
+					uart_data <= fft_ram_data;
+--					uart_data(26 downto 0) <= fft_ram_data(26 downto 0);	
+					state <= 13;
+				else
+					state <= 14;
 				end if;
 			end if;
 		end if;

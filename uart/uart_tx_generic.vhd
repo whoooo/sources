@@ -24,13 +24,13 @@ use IEEE.NUMERIC_STD.ALL;
 --use UNISIM.VComponents.all;
 
 entity uart_tx_generic is
-	generic(clock_counts_per_bit : integer := 434;
-			n_bytes : integer := 1);
-	port (	data_in : in std_logic_vector ((n_bytes * 8 - 1) downto 0); -- byte to be sent to host
-			byte_in_flag : in std_logic; -- notify component that data is ready to be sent
-			clk : in std_logic;
-			txfinished : out std_logic; -- flag which notifies control logic when data is finished being sent
-			txdata_out : out std_logic); -- data output to host
+	generic(clock_counts_per_bit	: integer := 434;
+			n_bytes 				: integer := 1);
+	port (	data_in 				: in std_logic_vector ((n_bytes * 8 - 1) downto 0); -- byte to be sent to host
+			byte_in_flag 			: in std_logic; -- notify component that data is ready to be sent
+			clk 					: in std_logic;
+			txfinished 				: out std_logic; -- flag which notifies control logic when data is finished being sent
+			txdata_out 				: out std_logic); -- data output to host
 end uart_tx_generic;
 
 architecture Behavioral of uart_tx_generic is

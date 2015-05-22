@@ -116,7 +116,7 @@ begin
 --sample_rate <= to_integer(unsigned(sample_rate_pr));
 --run <= run_pr(0);
 --rst <= rst_pr(0);
---fsm_state_pr <= std_logic_vector(to_unsigned(fsm_state, 5));
+fsm_state_pr <= std_logic_vector(to_unsigned(fsm_state, 5));
 --s_axis_data_tdata(31 downto 16) <= (others => '0');
 --uart_out <= uart_o;
 
@@ -124,7 +124,7 @@ begin
 --   port map (clk_in1 => clk100,
 --   			 clk50 => clk50);
 
-fsm : entity work.adc_fft_fsmV3
+fsm : entity work.adc_fft_fsmV4
 	generic map(clk_rate => 100)
     Port map(clk => clk100,
     		fft_points => fft_points,
@@ -233,37 +233,37 @@ uart_transmit : entity work.uart_tx_generic
 				txdata_out => uart_out);
 
 				
--- ila : entity work.ila_1
---			   PORT MAP (
---				 clk => clk100,
---				 probe0(0) => fft_rst,				    
---				 probe1(0) => s_axis_config_tvalid,
---				 probe2(0) => s_axis_config_tready,
---				 probe3(0) => s_axis_data_tvalid,
---				 probe4(0) => s_axis_data_tready,
---				 probe5(0) => s_axis_data_tlast,
---				 probe6(0) => m_axis_data_tvalid,
---				 probe7(0) => m_axis_data_tready,				    
---				 probe8(0) => m_axis_data_tlast,
---				 probe9 => event_frame_started,
---				 probe10 => event_tlast_unexpected,
---				 probe11 => event_tlast_missing,
---				 probe12 => event_status_channel_halt,				    
---				 probe13 => event_data_in_channel_halt,				
---				 probe14 => event_data_out_channel_halt,
---				 probe15(0) => run,
---				 probe16(0) => txready,
---				 probe17(0) => txfinished,
---				 probe18(0) => uart_o,
---				 probe19(0) => busy,
---				 probe20 => ram1_wea,
---				 probe21(0) => rc_s,
---				 probe22 => ram2_wea,
---				 probe23 => ram1_addra,
---				 probe24 => ram2_addra,
---				 probe25 => fsm_state_pr,
---				 probe26 => m_axis_data_tdata,
---				 probe27(31 downto 0) => uart_data); --(9 downto 0));
+ ila : entity work.ila_1
+			   PORT MAP (
+				 clk => clk100,
+				 probe0(0) => fft_rst,				    
+				 probe1(0) => s_axis_config_tvalid,
+				 probe2(0) => s_axis_config_tready,
+				 probe3(0) => s_axis_data_tvalid,
+				 probe4(0) => s_axis_data_tready,
+				 probe5(0) => s_axis_data_tlast,
+				 probe6(0) => m_axis_data_tvalid,
+				 probe7(0) => m_axis_data_tready,				    
+				 probe8(0) => m_axis_data_tlast,
+				 probe9 => event_frame_started,
+				 probe10 => event_tlast_unexpected,
+				 probe11 => event_tlast_missing,
+				 probe12 => event_status_channel_halt,				    
+				 probe13 => event_data_in_channel_halt,				
+				 probe14 => event_data_out_channel_halt,
+				 probe15(0) => run,
+				 probe16(0) => txready,
+				 probe17(0) => txfinished,
+				 probe18(0) => uart_o,
+				 probe19(0) => busy,
+				 probe20 => ram1_wea,
+				 probe21(0) => rc_s,
+				 probe22 => ram2_wea,
+				 probe23 => ram1_addra,
+				 probe24 => ram2_addra,
+				 probe25 => fsm_state_pr,
+				 probe26 => m_axis_data_tdata,
+				 probe27(31 downto 0) => uart_data); --(9 downto 0));
 							
 				    
 -- vio : entity work.vio_1

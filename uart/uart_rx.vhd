@@ -26,10 +26,11 @@ use IEEE.NUMERIC_STD.ALL;
 --allows data to be sampled in center of clock cycle
 
 entity uart_rx is
-	generic (clk_counts_per_bit : integer := 434);
-	port (clk, rxdata_in : in std_logic;
-			rxbyte_out : out std_logic_vector (7 downto 0); -- data byte sent from host
-			rxbyte_ready : out std_logic); -- lets control logic know that a data byte is ready
+	generic(	clk_counts_per_bit  : integer := 434);
+	port (		clk 				: in std_logic;
+				rxdata_in 			: in std_logic;
+				rxbyte_out 			: out std_logic_vector (7 downto 0); -- data byte sent from host
+				rxbyte_ready 		: out std_logic); -- lets control logic know that a data byte is ready
 end uart_rx;
 
 architecture Behavioral of uart_rx is
