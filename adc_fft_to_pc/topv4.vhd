@@ -50,9 +50,9 @@ signal m_axis_data_tdata, fft_ram_data : std_logic_vector(31 downto 0) := (other
 signal uart_data : std_logic_vector(31 downto 0) := (others => '0');
 signal ram1_wea, ram2_wea : std_logic_vector(0 downto 0) := "0";
 signal ram1_addra : std_logic_vector(12 downto 0) := (others => '0');
-signal ram2_addra : std_logic_vector(12 downto 0) := (others => '0');
+signal ram2_addra, ram2_max_addrax : std_logic_vector(12 downto 0) := (others => '0');
 signal m_axis_data_tuser : std_logic_vector(7 downto 0) := (others => '0');
-signal s_axis_config_tdata : std_logic_vector(15 downto 0) := (others => '0');
+signal s_axis_config_tdata : std_logic_vector(23 downto 0) := (others => '0');
 signal run_pr, rst_pr : std_logic_vector(0 downto 0) := (others => '0');
 signal event_frame_started,event_tlast_unexpected, event_tlast_missing, event_status_channel_halt, event_data_in_channel_halt, event_data_out_channel_halt : std_logic_vector(0 downto 0) := "0";
 signal unused :std_logic_vector(4 downto 0) := "00000";
@@ -64,6 +64,7 @@ signal fft_points : std_logic_vector(4 downto 0) := (others=>'0');
 signal n_samples_pr, init_max_addr_pr : std_logic_vector(12 downto 0) := (others => '0');
 signal sample_rate_pr : std_logic_vector(6 downto 0) := (others => '0');
 signal n_samples, sample_rate, init_max_addr : natural := 0;
+signal scaling_sch : std_logic_vector(11 downto 0) := (others => '0');
 
  attribute keep : string;
  attribute keep of m_axis_data_tuser : signal is "true";		    
@@ -134,7 +135,7 @@ fsm : entity work.adc_fft_fsmV4
         	ram_initialized => ram_initialized,
     		fsm_state => fsm_state,
         	fft_ram_data => fft_ram_data, 
-        	uart_data => uart_data,
+        	uart_data => open,
         	run => run,
         	rst => rst,
     		busy => busy,
@@ -146,6 +147,7 @@ fsm : entity work.adc_fft_fsmV4
     		ram2_rst => ram2_rst,
     		ram2_wea => ram2_wea,
     		ram2_addra => ram2_addra,
+    		ram2_max_addrax => ram2_max_addrax,
        		fft_rst => fft_rst,
     	  	s_axis_config_tdata => s_axis_config_tdata,
     	  	s_axis_config_tvalid => s_axis_config_tvalid,
@@ -156,6 +158,7 @@ fsm : entity work.adc_fft_fsmV4
     	  	m_axis_data_tvalid => m_axis_data_tvalid,
     	  	m_axis_data_tready => m_axis_data_tready,
     	  	m_axis_data_tlast => m_axis_data_tlast,
+    	  	scaling_sch => scaling_sch,
     	  	txfinished => txfinished,
     	  	txready => txready);
 
@@ -170,11 +173,11 @@ fft : entity work.xfft_0
 			s_axis_data_tvalid => s_axis_data_tvalid,
 			s_axis_data_tready => s_axis_data_tready,
 			s_axis_data_tlast => s_axis_data_tlast,
-			m_axis_data_tdata(31 downto 0) => m_axis_data_tdata,
-			m_axis_status_tdata => open,
-			m_axis_status_tready => '1',
-			m_axis_status_tvalid => open,
-			m_axis_data_tuser => m_axis_data_tuser,
+			m_axis_data_tdata => m_axis_data_tdata,
+			-- m_axis_status_tdata => open,
+			-- m_axis_status_tready => '1',
+			-- m_axis_status_tvalid => open,
+			-- m_axis_data_tuser => m_axis_data_tuser,
 			m_axis_data_tvalid => m_axis_data_tvalid,
 			m_axis_data_tready => m_axis_data_tready,
 			m_axis_data_tlast => m_axis_data_tlast,
@@ -201,7 +204,7 @@ mem1 : entity work.blk_mem_gen_1
 			wea => ram2_wea,
 			addra => ram2_addra(11 downto 0),
 			dina => m_axis_data_tdata,
-			douta => fft_ram_data);		
+			douta => uart_data);		
 
 			
 command_dec : entity work.cmd_decode
@@ -259,12 +262,17 @@ uart_transmit : entity work.uart_tx_generic
 				 probe20 => ram1_wea,
 				 probe21(0) => rc_s,
 				 probe22 => ram2_wea,
-				 probe23 => ram1_addra,
+				 probe23 => ram2_max_addrax,
 				 probe24 => ram2_addra,
 				 probe25 => fsm_state_pr,
 				 probe26 => m_axis_data_tdata,
 				 probe27(31 downto 0) => uart_data); --(9 downto 0));
-							
+
+ vio : entity work.vio_0
+			   PORT MAP (
+				 clk => clk100,
+				 probe_out0 => open,
+				 probe_out1 => scaling_sch);							
 				    
 -- vio : entity work.vio_1
 			  -- PORT MAP (

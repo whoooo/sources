@@ -4,10 +4,10 @@ use IEEE.STD_LOGIC_1164.ALL;
 entity mux_2to1 is
     generic(data_width  : natural := 8);     
 	port(   clk         : in std_logic;	
-            i1         : in std_logic_vector(data_width-1 downto 0);
-            i2         : in std_logic_vector(data_width-1 downto 0);
+            i1          : in std_logic_vector(data_width-1 downto 0);
+            i2          : in std_logic_vector(data_width-1 downto 0);
             control     : in std_logic;
-            o      : out std_logic_vector(data_width-1 downto 0));
+            o           : out std_logic_vector(data_width-1 downto 0));
 end mux_2to1;
 
 architecture behavioral of mux_2to1 is

@@ -36,6 +36,9 @@ begin
                 if (fp_ram_addra_s >= std_logic_vector(to_unsigned(n_fft,13))) then
                     finished <= '1';
                     fp_tvalid <= '0';
+                else
+                    fp_tvalid <= '1';
+                    finished <= '0';
                 end if;
             else
                 null;

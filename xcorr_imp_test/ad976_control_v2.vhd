@@ -23,7 +23,7 @@ end ad976_control_v2;
 
 architecture Behavioral of ad976_control_v2 is
 
-signal state : natural range 0 to 4 := 0;
+signal state : natural range 0 to 5 := 0;
 signal clk_counter : natural range 0 to 5000 := 0;
 signal sample_counts : natural range 50 to 5000 := 2500;
 signal samp_ram_addr_s, samp_ram_max_addr : std_logic_vector(11 downto 0) := (others => '0');
@@ -90,12 +90,14 @@ samp_ram_addr <= samp_ram_addr_s;
 				if samp_ram_addr_s = samp_ram_max_addr then
 					samp_ram_addr_s <= (others => '0');
 					data_ready <= '1';
-					state <= 0;
+					state <= 5;
 				else
 					clk_counter <= 0;
 					samp_ram_addr_s <= std_logic_vector(unsigned(samp_ram_addr_s) + 1);
 					state <= 1;
 				end if;
+            elsif state = 5 then
+                data_ready <= '0';
 			end if;
 		end if;
      end process;     		

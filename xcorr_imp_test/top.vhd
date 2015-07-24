@@ -71,7 +71,7 @@ signal event_data_out_channel_halt_f : std_logic := '0';
 signal s_axis_config_tdata_r : std_logic_vector(23 downto 0) := (others => '0');
 signal s_axis_config_tvalid_r : std_logic := '0';
 signal s_axis_config_tready_r : std_logic := '0';
-signal s_axis_data_tdata_r : std_logic_vector(79 downto 0) := (others => '0');
+signal s_axis_data_tdata_r : std_logic_vector(63 downto 0) := (others => '0');
 signal s_axis_data_tvalid_r : std_logic := '0';	
 signal s_axis_data_tready_r : std_logic := '0';	
 signal s_axis_data_tlast_r : std_logic := '0';	
@@ -110,8 +110,13 @@ attribute keep of event_data_out_channel_halt_f		: signal is "true";
 
 begin
 
-scaling_sch <= "10101010101011";
+--scaling_sch <= "10101010101011";
 
+vio : entity work.vio_0
+  PORT MAP (
+	clk => clk,
+   				probe_out0 => scaling_sch);
+ 
 uartRX : entity work.uart_rx
 	generic map(clk_counts_per_bit  => 868)
 	port map(	clk => clk,
@@ -252,12 +257,12 @@ ifft1 : entity work.ifft
 				s_axis_data_tvalid => s_axis_data_tvalid_r,
 				s_axis_data_tready => s_axis_data_tready_r,
 				s_axis_data_tlast => s_axis_data_tlast_r,
---				m_axis_data_tdata => xcorr,
-				m_axis_data_tdata(79 downto 73) => open,
-				m_axis_data_tdata(72 downto 41) => xcorr(63 downto 32),
-				m_axis_data_tdata(40 downto 33) => open,
-				m_axis_data_tdata(32 downto 1) => xcorr(31 downto 0),
-				m_axis_data_tdata(0) => open,
+				m_axis_data_tdata => xcorr,
+--				m_axis_data_tdata(79 downto 73) => open,
+--				m_axis_data_tdata(72 downto 41) => xcorr(63 downto 32),
+--				m_axis_data_tdata(40 downto 33) => open,
+--				m_axis_data_tdata(32 downto 1) => xcorr(31 downto 0),
+--				m_axis_data_tdata(0) => open,
 				m_axis_data_tvalid => m_axis_data_tvalid_r,
 				m_axis_data_tready => m_axis_data_tready_r,
 				m_axis_data_tlast => m_axis_data_tlast_r,

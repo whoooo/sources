@@ -117,7 +117,7 @@ begin
 				s_axis_data_tvalid_f <= '1';
 				if s_axis_data_tready_f = '1' then
 					state <= 3;
-					samp_ram_addrb_s <= std_logic_vector(unsigned(samp_ram_addrb_s) + 1);
+					-- samp_ram_addrb_s <= std_logic_vector(unsigned(samp_ram_addrb_s) + 1);
 				else
 					state <= 2;
 				end if;
@@ -153,20 +153,28 @@ begin
                 m_axis_data_tready_r <= '1';
                 ifft_ram_wea <= "1";
 				state <= 6;
-			elsif state = 6 then
+            elsif state = 6 then
+                if m_axis_data_tvalid_r = '1' then
+                    ifft_ram_addra_s <= std_logic_vector(unsigned(ifft_ram_addra_s) + 1);
+                    state <= 7;
+                end if;
+			elsif state = 7 then
 				if m_axis_data_tvalid_r = '1' then
 					ifft_ram_wea <= "1";
 					ifft_ram_addra_s <= std_logic_vector(unsigned(ifft_ram_addra_s) + 1);
 					if m_axis_data_tlast_r = '1' then	
+                        ifft_ram_wea <= "0";
 						ifft_finished <= '1';
-						state <= 0;
+						state <= 8;
 					else
-						state <= 6;
+						state <= 7;
 					end if;
 				else
 					ifft_ram_wea <= "0";
-					state <= 6;
-				end if;		
+					state <= 7;
+				end if;	
+            elsif state = 8 then
+                ifft_finished <= '0';
 			end if;
 		end if;
 	end process;

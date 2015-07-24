@@ -40,7 +40,7 @@ begin
             txbyte_ready <= '0';
             if start = '1' then
                 txbyte_ready <= '1';
-                addr_out_s <= std_logic_vector(unsigned(addr_out_s) + 1);
+                -- addr_out_s <= std_logic_vector(unsigned(addr_out_s) + 1);
                 state <= '1';
             else
                 state <= '0';

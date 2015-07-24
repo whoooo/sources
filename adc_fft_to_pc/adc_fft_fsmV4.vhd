@@ -46,10 +46,11 @@ entity adc_fft_fsmv4 is
     		ram2_rst : out std_logic;
     		ram2_wea : out STD_LOGIC_VECTOR(0 DOWNTO 0);
     		ram2_addra : out STD_LOGIC_VECTOR(12 DOWNTO 0);
+    		ram2_max_addrax : out std_logic_vector(12 downto 0);
             fft_ram_data : in std_logic_vector(31 downto 0); -- fft output data stored in ram.
     		-- fft ports
        		fft_rst : out std_logic; --active low reset, must be held low for 2 cycles
-    	  	s_axis_config_tdata : out STD_LOGIC_VECTOR(15 DOWNTO 0); -- config for fft. (8:8) = fww/reverse, (4:0) = nfft
+    	  	s_axis_config_tdata : out STD_LOGIC_VECTOR(23 DOWNTO 0); -- config for fft. (8:8) = fww/reverse, (4:0) = nfft
     	  	s_axis_config_tvalid : out STD_LOGIC; -- signals that master is ready to send data to fft
     	  	s_axis_config_tready : in STD_LOGIC; -- signals that fft is ready for config data
     	  	s_axis_data_tvalid : out STD_LOGIC; -- signals that master is ready to send data to fft
@@ -58,6 +59,7 @@ entity adc_fft_fsmv4 is
     	  	m_axis_data_tvalid : in STD_LOGIC; -- asserted by fft to signal that it's ready to provide output data
     	  	m_axis_data_tready : out STD_LOGIC; -- asserted by external unit to signal that it's ready for output data
     	  	m_axis_data_tlast : in STD_LOGIC; -- asserted by fft on last sample being sent out
+    	  	scaling_sch : in std_logic_vector(11 downto 0);
     	  	-- uart ports
     	  	txfinished : in std_logic;
     	  	uart_data : out std_logic_vector(31 downto 0); -- data to send via uart
@@ -83,6 +85,7 @@ begin
 	cs <= '0';
 	ram1_addra <= ram1_addra_s;
 	ram2_addra <= ram2_addra_s;
+	ram2_max_addrax <= ram2_max_addr;
 	fsm_state <= state;
 --	s_axis_config_tdata <= fft_config;
 	counts_per_sample <= (clk_rate * 1000) / sample_rate;
@@ -115,8 +118,10 @@ begin
 				fft_config(7 downto 5) <= "000"; -- filler data
 				fft_config(4 downto 0) <= fft_points; -- n points for fft				
 				if (run = '1' and rst = '0') then
-					s_axis_config_tdata(15 downto 9) <= "0000000";
-					s_axis_config_tdata(8 downto 0) <= fft_config;
+                    s_axis_config_tdata(23 downto 21) <= "000";
+                    s_axis_config_tdata(20 downto 9) <= scaling_sch;
+					-- s_axis_config_tdata(15 downto 9) <= "0000000
+                    s_axis_config_tdata(8 downto 0) <= fft_config;
 					if ram_initialized = '0' then -- using adc
 						ram1_max_addr <= std_logic_vector(to_unsigned(n_samples - 1, 13));
 						ram1_rst <= '1';
@@ -124,6 +129,7 @@ begin
 						state <= 1;
 					elsif ram_initialized = '1' then -- using initialized values
 						ram1_max_addr <= std_logic_vector(to_unsigned(init_max_addr, 13));
+						ram2_max_addr <= std_logic_vector(to_unsigned(n_samples , 13));
 						state <= 5;
 					end if;
 				end if;
@@ -184,6 +190,7 @@ begin
 			elsif state = 7 then
 				s_axis_data_tvalid <= '1';
 				if s_axis_data_tready = '1' then
+--					ram1_addra_s <= std_logic_vector(unsigned(ram1_addra_s) + 1);
 					state <= 8;
 				else 
 					state <= 7;
@@ -205,9 +212,9 @@ begin
 			elsif state = 9 then
 				s_axis_data_tlast <= '0';
 				s_axis_data_tvalid <= '0';
-				m_axis_data_tready <= '1';
+--				m_axis_data_tready <= '1';
 				ram2_wea <= "1";
-				state <= 11;
+				state <= 10;
 				
 			-- END SEND DATA TO FFT *************************************************************
 			-- BEGIN SAVING FFT DATA *************************************************************
@@ -215,20 +222,22 @@ begin
 			-- save FFT data to blk_mem_gen_1. save values to ram as long as tvalid is high. if it goes low,
 			-- disable write enable to ram and wait for tvalid to go high again.
 			
-			-- elsif state = 10 then
-				-- if m_axis_data_tvalid = '1' then
-					-- ram2_wea <= "1";
-					-- state <= 11;
-				-- else
-					-- state <= 10;
-				-- end if;
+			 elsif state = 10 then
+				 if m_axis_data_tvalid = '1' then
+				 	m_axis_data_tready <= '1';
+					ram2_wea <= "1";
+					state <= 11;
+				 else
+					 state <= 10;
+				 end if;
 				
 			elsif state = 11 then
 				if m_axis_data_tvalid = '1' then
 					ram2_wea <= "1";
 					ram2_addra_s <= std_logic_vector(unsigned(ram2_addra_s) + 1);
 					if m_axis_data_tlast = '1' then	
-						finished <= '1';
+                    ram2_wea <= "0";
+--						finished <= '1';
 						state <= 12;
 					else
 						state <= 11;
@@ -244,15 +253,17 @@ begin
 			-- prepare to send data via uart
 			elsif state = 12 then
 				m_axis_data_tready <= '0';
-				ram2_wea <= "0";
+				-- ram2_wea <= "0";
 				ram2_addra_s <= (others => '0');
 				uart_data <= fft_ram_data;
 --				uart_data(26 downto 0) <= fft_ram_data(15 downto 0);
 				state <= 13;
 			-- send real and imaginary parts together
 			elsif state = 13 then			
-				if ram2_addra_s = std_logic_vector(unsigned(ram2_max_addr) + 1) then
-					state <= 0;
+--				if ram2_addra_s = std_logic_vector(unsigned(ram2_max_addr) + 1) then
+				if ram2_addra_s = ram2_max_addr  then
+					txready <= '1';
+					state <= 15;
 				else 				
 					txready <= '1';
 					state <= 14;
@@ -267,6 +278,8 @@ begin
 				else
 					state <= 14;
 				end if;
+			elsif state = 15 then
+				null;
 			end if;
 		end if;
 	end process;			
