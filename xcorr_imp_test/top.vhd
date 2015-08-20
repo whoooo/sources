@@ -2,11 +2,6 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
 entity top is
     Port (	clk			: in std_logic;
 			din			: in std_logic_vector(15 downto 0);
@@ -40,10 +35,10 @@ signal samp_data_mux : std_logic_vector(15 downto 0) := x"0000";
 signal zp : std_logic := '0';
 
 -- fingerprint ram and complex multiplier control signals
-signal fp_ram_addra, fp_addrb : std_logic_vector(12 downto 0) := (others => '0');
+signal fp_ram_addra, fp_ram_addrb : std_logic_vector(12 downto 0) := (others => '0');
 signal fp_wea : std_logic_vector(0 downto 0) := "0";
 signal fp_tvalid, fp_tready : std_logic := '0';
-signal fp_tdata : std_logic_vector(31 downto 0) := (others => '0');
+signal fp_tdata, fp_ram_dina: std_logic_vector(31 downto 0) := (others => '0');
 
 -- misc fft signals
 signal scaling_sch : std_logic_vector(13 downto 0) := (others => '0');
@@ -93,6 +88,8 @@ signal corr_ram_wea : std_logic_vector(0 downto 0) := "0";
 signal corr_data : std_logic_vector(31 downto 0) := (others => '0');
 signal done : std_logic := '0';
 
+-- threshold
+signal threshold : std_logic_vector(31 downto 0) := (others => '0');
 
 attribute keep : string;
 attribute keep of event_frame_started_r 			: signal is "true";
@@ -113,9 +110,10 @@ begin
 --scaling_sch <= "10101010101011";
 
 vio : entity work.vio_0
-  PORT MAP (
-	clk => clk,
-   				probe_out0 => scaling_sch);
+	PORT MAP(	clk => clk,
+   				probe_out0 => scaling_sch,
+   				probe_out1(0) => open,
+   				probe_out2 => threshold);
  
 uartRX : entity work.uart_rx
 	generic map(clk_counts_per_bit  => 868)
@@ -212,16 +210,16 @@ samp_fft1 : entity work.samp_fft
 				event_status_channel_halt => event_status_channel_halt_f,
 				event_data_in_channel_halt => event_data_in_channel_halt_f,
 				event_data_out_channel_halt => event_data_out_channel_halt_f);
-				
+
 fingerprint_ram : entity work.fp_ram
-	PORT MAP (
-	clka => clk,
+    PORT MAP (	clka => clk,
 				wea => "0",
 				addra => fp_ram_addra,
-				dina => (others => '0'),
-				douta => fp_tdata
-);
-				
+				dina => fp_ram_dina,
+				clkb => clk,
+				addrb => fp_ram_addrb,
+				doutb => fp_tdata);
+					
 fp_ram_ctrl : entity work.fp_ram_control 
 	port map(   m_axis_data_tvalid_f => m_axis_data_tvalid_f,
 				m_axis_data_tready_f => m_axis_data_tready_f,
@@ -230,7 +228,7 @@ fp_ram_ctrl : entity work.fp_ram_control
 				rst => rst,
 				fp_tready => fp_tready,
 				fp_tvalid => fp_tvalid,
-				fp_ram_addra => fp_ram_addra);
+				fp_ram_addr => fp_ram_addrb);
 				
 complex_mult : entity work.cmpy_0
 	PORT MAP(	aclk => clk,
@@ -258,11 +256,6 @@ ifft1 : entity work.ifft
 				s_axis_data_tready => s_axis_data_tready_r,
 				s_axis_data_tlast => s_axis_data_tlast_r,
 				m_axis_data_tdata => xcorr,
---				m_axis_data_tdata(79 downto 73) => open,
---				m_axis_data_tdata(72 downto 41) => xcorr(63 downto 32),
---				m_axis_data_tdata(40 downto 33) => open,
---				m_axis_data_tdata(32 downto 1) => xcorr(31 downto 0),
---				m_axis_data_tdata(0) => open,
 				m_axis_data_tvalid => m_axis_data_tvalid_r,
 				m_axis_data_tready => m_axis_data_tready_r,
 				m_axis_data_tlast => m_axis_data_tlast_r,
@@ -272,6 +265,13 @@ ifft1 : entity work.ifft
 				event_status_channel_halt => event_status_channel_halt_r,
 				event_data_in_channel_halt => event_data_in_channel_halt_r,
 				event_data_out_channel_halt => event_data_out_channel_halt_r);
+				
+threshold_detector : entity work.threshold_detect 
+	port map(   clk => clk,
+				rst => rst,
+				threshold => threshold,
+				xcorr_in => xcorr(31 downto 0),
+				flag => flag);				
 				
 correlation_ram : entity work.corr_ram
 		PORT MAP(clka => clk,
@@ -293,13 +293,10 @@ ram2uart : entity work.ram_to_uart
 				addr_out => corr_ram_addrb,
 				txbyte_ready => txbyte_ready);
 
--- drop lowest bit of cross correlation to fit in 8 byte chunks								
 uartTX1 : entity work.uart_tx_generic
 	generic map(clock_counts_per_bit => 868,
 				n_bytes => 8)
-	port map(	data_in => xcorr_out,
---				data_in(63 downto 32) => xcorr_out(72 downto 41),
---				data_in(31 downto 0) => xcorr_out(32 downto 1),		
+	port map(	data_in => xcorr_out,		
 				byte_in_flag => txbyte_ready, 			
 				clk => clk,					
 				txfinished => txfinished,			
