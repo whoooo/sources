@@ -1,17 +1,21 @@
+-- uses single fingerprint. won't collect new samples until cross corr operation is complete.
+-- if threshold is met, led is turned on until the next cycle in which a match does not occur
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
-entity top is
+entity top_loop_1fp_simple is
     Port (	clk			: in std_logic;
 			din			: in std_logic_vector(15 downto 0);
 			busy 		: in std_logic;
 			uart_in		: in std_logic;
+            led         : out std_logic;
 			uart_out	: out std_logic;
 			rc 			: out std_logic);
-end top;
+end top_loop_1fp_simple;
 
-architecture Behavioral of top is
+architecture Behavioral of top_loop_1fp_simple is
 
 -- uart 
 signal txbyte_ready, rxbyte_ready, txfinished : std_logic := '0';
@@ -86,14 +90,23 @@ signal xcorr, xcorr_out : std_logic_vector(63 downto 0) := (others => '0');
 signal corr_ram_addra, corr_ram_addrb : std_logic_vector(14 downto 0) := (others => '0');
 signal corr_ram_wea : std_logic_vector(0 downto 0) := "0";
 signal corr_data : std_logic_vector(31 downto 0) := (others => '0');
-signal done : std_logic := '0';
+signal uart_tx_done : std_logic := '0';
+signal uart_tx_start : std_logic := '0';
 
 -- threshold
 signal threshold : std_logic_vector(31 downto 0) := (others => '0');
 signal thresh_flag : std_logic := '0';
 
+-- loop controls
+signal run_loop : std_logic := '0';
+signal led_s : std_logic := '0';
+
 attribute keep : string;
-attribute keep of thresh_flag								: signal is "true";
+attribute keep of led_s								: signal is "true";
+attribute keep of uart_tx_start						: signal is "true";
+attribute keep of txfinished						: signal is "true";
+attribute keep of uart_tx_done						: signal is "true";
+attribute keep of thresh_flag						: signal is "true";
 attribute keep of event_frame_started_r 			: signal is "true";
 attribute keep of event_tlast_unexpected_r 			: signal is "true";	
 attribute keep of event_tlast_missing_r 			: signal is "true";
@@ -109,6 +122,7 @@ attribute keep of event_data_out_channel_halt_f		: signal is "true";
 
 begin
 
+led <= led_s;
 --scaling_sch <= "10101010101011";
 
 vio : entity work.vio_0
@@ -128,13 +142,26 @@ cmd_decode : entity work.xcorr_cmd_decode
 	port map(	clk => clk,
 				rxbyte_ready => rxbyte_ready,
 				rxbyte_in => rxbyte,
-				run => run_adc,
+				run => run_loop,
 				rst => rst,
 				n_fft => n_fft,
 				n_samples => n_samples,
 				ram_initialized => ram_initialized);
+                
+loop_control : entity work.loop_control_1fp 
+    port map(   clk => clk,
+                rst => rst,
+                run_loop => run_loop,
+                ifft_finished => ifft_finished,
+                thresh_detected => thresh_flag,
+                ram2uart_done => uart_tx_done,
+                m_axis_data_tvalid_r => m_axis_data_tvalid_r,
+                start_adc => run_adc,
+                rst_out => open,
+                ram2uart_start => uart_tx_start,
+                led => led_s);
 
-adc_control : entity work.ad976_control_v2
+adc_control : entity work.ad976_control_v3
 	generic map( clk_rate => 100)
 	Port map( 	sample_rate => 40,
 				n_samples => n_samples,
@@ -165,7 +192,7 @@ mux21 : entity work.mux_2to1
 				control => zp,
 				o => samp_data_mux);
 
-fft_control1 : entity work.fft_control 
+fft_control1 : entity work.fft_control_v2
 	Port map(  	n_fft => n_fft, 		
 				n_samples => n_samples, 	
 				data_ready => samp_data_ready,	
@@ -285,14 +312,14 @@ correlation_ram : entity work.corr_ram
 				addrb => corr_ram_addrb(12 downto 0),
 				doutb => xcorr_out);
 				  
-ram2uart : entity work.ram_to_uart
+ram2uart : entity work.ram_to_uart_v2
 	generic map(addr_width => 14)
 	port map(	clk => clk,
 				rst => rst,
-				start => ifft_finished,
+				start => uart_tx_start,
 				txfinished => txfinished,
 				max_addr => n_fft, 
-				done => done,   
+				done => uart_tx_done,   
 				addr_out => corr_ram_addrb,
 				txbyte_ready => txbyte_ready);
 
