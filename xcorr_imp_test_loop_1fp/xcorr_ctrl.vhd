@@ -528,7 +528,7 @@ begin
             state_xcorr <= 0;
         elsif rising_edge(clk) then
             if state_xcorr = 0 then       
-                threshold_check <= '0';
+                threshold_check_s <= '0';
                 fp_ram_addrb_s <= (others => '0');
                 mult_a_tvalid <= '0';
                 mult_a_tlast <= '0';
@@ -536,7 +536,6 @@ begin
                 m_axis_data_tready_r <= '0';
                 samp_f_ram_addrb_s <= (others => '0');
                 samp_f_ram_max_addrb <= std_logic_vector(to_unsigned(n_samples - 1, samp_f_ram_addr_length));
-                threshold_check <= '0';
                 xcorr_finished <= '0';
                 xcorr_ram_addra_s <= (others => '0');
                 xcorr_ram_wea <= "0";
@@ -560,7 +559,7 @@ begin
                         state_xcorr <= 1;
                     end if;
                 else
-                    state_xcorr = 1;
+                    state_xcorr <= 1;
                 end if;
             elsif state_xcorr = 2 then
                 mult_a_tlast <= '0';
@@ -568,7 +567,7 @@ begin
                 mult_b_tvalid <= '0';
                 m_axis_data_tready_r <= '1';
                 xcorr_ram_wea <= "1";
-                threshold_check <= '1';
+                threshold_check_s <= '1';
                 if m_axis_data_tvalid_r = '1' then               
                     state_xcorr <= 3;
                 else
