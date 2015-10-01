@@ -12,13 +12,13 @@ entity ram_to_uart_v2 is
             txfinished 		: in std_logic;
             max_addr        : in natural;
             done    		: out std_logic;
-            addr_out		: out std_logic_vector(addr_width downto 0);
+            addr_out		: out std_logic_vector(addr_width - 1 downto 0);
             tx_ready     	: out std_logic);
 end ram_to_uart_v2;
 
 architecture behavioral of ram_to_uart_v2 is 
 
-signal addr_out_s, max_addr_s : std_logic_vector(14 downto 0) := (others => '0');
+signal addr_out_s, max_addr_s : std_logic_vector(addr_width - 1 downto 0) := (others => '0');
 signal state : std_logic := '0';
 
 begin
@@ -32,7 +32,7 @@ begin
 	elsif rising_edge(clk) then
 		case state is
         when '0' =>
-            max_addr_s <= std_logic_vector(to_unsigned(max_addr, addr_width+1));
+            max_addr_s <= std_logic_vector(to_unsigned(max_addr - 1, addr_width));
             addr_out_s <= (others => '0');
             done <= '0';
             tx_ready <= '0';

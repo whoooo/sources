@@ -7,7 +7,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity top is
     port(   clk         : in std_logic;
-            adc_din     : in std_logic_vector(15 downto 0);
+            din     : in std_logic_vector(15 downto 0);
             busy        : in std_logic;
             uart_in     : in std_logic;
             uart_out	: out std_logic;
@@ -23,7 +23,7 @@ constant adc_samp_rate_c           : natural := 40;
 constant mux_data_width_c          : natural := 16;
 
 -- vio signals
-signal scaling_sch : std_logic_vector(13 downto 0) := x"2AAB";
+signal scaling_sch : std_logic_vector(13 downto 0) := "10101010101011";
 signal threshold : std_logic_vector(31 downto 0) := x"00004000";
 -- reset signals
 signal fft_rst : std_logic := '1';
@@ -55,11 +55,12 @@ signal xcorr_ram_addra, xcorr_ram_addrb : std_logic_vector(samp_f_ram_addr_lengt
 signal adc_data_mux : std_logic_vector(15 downto 0) := (others => '0');
 signal adc_dout : std_logic_vector(15 downto 0) := (others => '0');
 
+-- multiplier signals
 signal mult_tready, mult_a_tlast, mult_a_tvalid, mult_b_tvalid : std_logic := '0';
 
 signal threshold_check, threshold_detected : std_logic := '0';
-
 signal n_fft : natural range 0 to 8192 := 0;
+signal led_s : std_logic := '0';
 
 -- fwd fft signals
 signal s_axis_config_tdata_f : std_logic_vector(23 downto 0) := (others => '0');
@@ -100,7 +101,49 @@ signal event_data_out_channel_halt_r : std_logic := '0';
 signal xcorr, xcorr_out : std_logic_vector(63 downto 0) := (others => '0');
 
 
+attribute keep : string;
+attribute keep of led_s								: signal is "true";
+attribute keep of fft_rst					    	: signal is "true";
+attribute keep of rst								: signal is "true";
+attribute keep of samp_ram_wea				    	: signal is "true";
+--attribute keep of run								: signal is "true";
+attribute keep of samp_ram_addra					: signal is "true";
+attribute keep of samp_ram_addrb					: signal is "true";
+attribute keep of samp_f_ram_wea				   	: signal is "true";
+attribute keep of samp_f_ram_addra					: signal is "true";
+attribute keep of samp_f_ram_addrb					: signal is "true";
+attribute keep of fp_ram_addrb				    	: signal is "true";
+attribute keep of xcorr_ram_addra				   	: signal is "true";
+attribute keep of xcorr_ram_addrb					: signal is "true";
+attribute keep of xcorr_ram_wea 					: signal is "true";
+attribute keep of mult_a_tlast			    	   	: signal is "true";
+attribute keep of mult_a_tvalid			    		: signal is "true";
+attribute keep of mult_b_tvalid			    		: signal is "true";
+attribute keep of mult_tready			    	   	: signal is "true";
+attribute keep of threshold_check      				: signal is "true";
+attribute keep of threshold_detected				: signal is "true";
+attribute keep of uart_tx_start						: signal is "true";
+attribute keep of tx_finished						: signal is "true";
+attribute keep of uart_tx_done						: signal is "true";
+--attribute keep of thresh_flag						: signal is "true";
+attribute keep of event_frame_started_r 			: signal is "true";
+attribute keep of event_tlast_unexpected_r 			: signal is "true";	
+attribute keep of event_tlast_missing_r 			: signal is "true";
+attribute keep of event_status_channel_halt_r		: signal is "true";	
+attribute keep of event_data_in_channel_halt_r		: signal is "true";
+attribute keep of event_data_out_channel_halt_r 	: signal is "true";	
+attribute keep of event_frame_started_f				: signal is "true";	
+attribute keep of event_tlast_unexpected_f 			: signal is "true";	
+attribute keep of event_tlast_missing_f				: signal is "true";	
+attribute keep of event_status_channel_halt_f		: signal is "true";		
+attribute keep of event_data_in_channel_halt_f		: signal is "true";		
+attribute keep of event_data_out_channel_halt_f		: signal is "true";	
+
+
+
 begin
+
+led <= led_s;
 
 vio : entity work.vio_0
     PORT MAP (      clk => clk,
@@ -127,7 +170,7 @@ control : entity work.xcorr_ctrl
                     n_fft_out               => n_fft,
                     fft_rst	                => fft_rst,
                     rst_out                 => rst,
-                    led		                => led,
+                    led		                => led_s,
                     -- adc ports
                     busy                    => busy,
                     rc                      => rc,
@@ -185,7 +228,7 @@ mem_samp0 : entity work.mem_samp
   PORT map(         clka => clk,
                     wea => samp_ram_wea,
                     addra => samp_ram_addra,
-                    dina => adc_din,
+                    dina => din,
                     clkb => clk,
                     addrb => samp_ram_addrb,
                     doutb => adc_dout);                
@@ -232,7 +275,7 @@ mem_fp_ram_0 : entity work.mem_fp
 
 cmplx_mult : entity work.cmpy_0
   PORT MAP (        aclk => clk,
-                    aresetn => rst,
+                    aresetn => not rst,
                     s_axis_a_tvalid => mult_a_tvalid,
                     s_axis_a_tready => mult_tready,
                     s_axis_a_tlast => mult_a_tlast,
@@ -284,7 +327,7 @@ threshold_detector : entity work.threshold_detect
                     flag => threshold_detected);
                     
 ram2uart : entity work.ram_to_uart_v2
-        generic map(addr_width => 14)
+        generic map(addr_width => 13)
         port map(	clk => clk,
                     rst => rst,
                     start => uart_tx_start,

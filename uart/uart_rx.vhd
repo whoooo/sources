@@ -95,11 +95,11 @@ begin
 				state <= "011";
 			elsif clk_counts = (clk_counts_per_bit - 1) then
 				clk_counts <= 0;
+                rxbyte_out <= rxbyte;                
 				state <= "100";
 			end if;
 		
 		elsif state = "100" then -- pass on received data and notify control logic that byte is ready
-			rxbyte_out <= rxbyte;
 			rxbyte_ready <= '1';
 			state <= "000";
 		end if;

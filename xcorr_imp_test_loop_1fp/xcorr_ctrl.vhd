@@ -142,6 +142,7 @@ signal run_xcorr : std_logic := '0';
 signal state_xcorr : natural range 0 to 20 := 0;
 signal xcorr_busy : std_logic := '0'; -- 1= xcorr in middle of processing, 0 = xcorr not busy
 signal xcorr_finished : std_logic := '0';
+
 --signal xcorr_ram_wea : std_logic_vector(0 downto 0) := "0";
 signal xcorr_ram_addra_s, xcorr_ram_addrb_s : std_logic_vector(12 downto 0);
 
@@ -149,6 +150,19 @@ signal xcorr_ram_addra_s, xcorr_ram_addrb_s : std_logic_vector(12 downto 0);
 signal threshold_check_s : std_logic := '0';
 signal threshold_flag : std_logic := '0';
 signal state_thresh : natural range 0 to 5 := 0;
+
+attribute keep : string;
+attribute keep of run							    : signal is "true";
+attribute keep of state_adc							: signal is "true";
+attribute keep of state_cmd_decode					: signal is "true";
+attribute keep of state_config_fft					: signal is "true";
+attribute keep of state_fwd_fft						: signal is "true";
+attribute keep of state_loop				    	: signal is "true";
+attribute keep of state_xcorr                       : signal is "true";
+attribute keep of fwd_fft_finished                  : signal is "true";
+attribute keep of xcorr_finished                    : signal is "true";
+attribute keep of run_xcorr                         : signal is "true";
+
 
 begin
 
@@ -159,6 +173,8 @@ begin
     
     samp_f_ram_addra <= samp_f_ram_addra_s;
     samp_f_ram_addrb <= samp_f_ram_addrb_s;
+    
+    fp_ram_addrb <= fp_ram_addrb_s;
     
 	xcorr_ram_addra <= xcorr_ram_addra_s;
     xcorr_ram_addrb <= xcorr_ram_addrb_s;
@@ -175,19 +191,25 @@ begin
     -- decode uart data to get commands and configs
     cmd_decode : process(clk, rst)
     begin
-        if rst = '1' then
-            run_fft_config <= '0';
-            state_cmd_decode <= 0;         
-        elsif rising_edge(clk) then
+        -- if rst = '1' then
+            -- run_fft_config <= '0';
+            -- -- fft_config_lock <= '0';
+            -- state_cmd_decode <= 0;         
+        -- elsif rising_edge(clk) then
+        if rising_edge(clk) then
             case state_cmd_decode is
                 when 0 =>
                     if rxbyte_ready = '1' then
                         run <= rxbyte_in(7);
-                        rst <= rxbyte_in(6);
+                        rst <= rxbyte_in(6);  
+                        if rxbyte_in(6) = '0' then
+                            state_cmd_decode <= 1;
+                        else
+                            state_cmd_decode <= 0;
+                        end if;
                         use_adc <= rxbyte_in(5);
                         run_once <= rxbyte_in(4);
-                        state_cmd_decode <= 1;
-                        case rxbyte_in(2 downto 0) is
+                        case rxbyte_in(3 downto 1) is
                             when "000" =>
                                 n_samples <= 256;
                                 n_fft <= 512;
@@ -303,6 +325,7 @@ begin
                     run_fwd_fft <= '0';
                     if fwd_fft_finished = '1' then
                         run_xcorr <= '1';
+                        state_loop <= 3;
                     else
                         state_loop <= 2;
                     end if;
@@ -446,7 +469,8 @@ begin
 				zp <= '0';
 				if run_fwd_fft = '1' then              				           
 					state_fwd_fft <= 1;
-                    if run_once = '1' then                   
+                    -- if run_once = '1' then   
+                    if use_adc = '0' then
                         samp_ram_max_addrb <= std_logic_vector(to_unsigned(n_samples - 1, samp_ram_addr_length));
  					elsif samp_ram_flag = '0' then 
                         samp_ram_addrb_s <= std_logic_vector(to_unsigned(n_samples - 1, samp_ram_addr_length));
@@ -501,6 +525,7 @@ begin
                 samp_f_ram_wea <= "1";
                 if m_axis_data_tvalid_f = '1' then
                     state_fwd_fft <= 5;
+                    samp_f_ram_addra_s <= std_logic_vector(unsigned(samp_f_ram_addra_s) + 1); -- 9/30 1:48pm
                 else
                     state_fwd_fft <= 4;
                 end if;
@@ -517,6 +542,9 @@ begin
 				else
 					state_fwd_fft <= 5;
 				end if;	
+            -- elsif state_fwd_fft = 6 then
+                -- fwd_fft_finished <= '1';
+                -- state_fwd_fft <= 0;
 			end if;
 		end if;
 	end process;
@@ -535,7 +563,7 @@ begin
                 mult_b_tvalid <= '0';
                 m_axis_data_tready_r <= '0';
                 samp_f_ram_addrb_s <= (others => '0');
-                samp_f_ram_max_addrb <= std_logic_vector(to_unsigned(n_samples - 1, samp_f_ram_addr_length));
+                samp_f_ram_max_addrb <= std_logic_vector(to_unsigned(n_fft - 2, samp_f_ram_addr_length));
                 xcorr_finished <= '0';
                 xcorr_ram_addra_s <= (others => '0');
                 xcorr_ram_wea <= "0";
@@ -568,7 +596,8 @@ begin
                 m_axis_data_tready_r <= '1';
                 xcorr_ram_wea <= "1";
                 threshold_check_s <= '1';
-                if m_axis_data_tvalid_r = '1' then               
+                if m_axis_data_tvalid_r = '1' then
+                    xcorr_ram_addra_s <= std_logic_vector(unsigned(xcorr_ram_addra_s) + 1);                
                     state_xcorr <= 3;
                 else
                     state_xcorr <= 2;
@@ -587,30 +616,53 @@ begin
                 else
                     state_xcorr <= 3;
                 end if;
+            -- elsif state_xcorr = 4 then
+                -- xcorr_finished <= '1';
+                -- state_xcorr <= 0;
             end if;
         end if;
     end process;
     
     
-    thresh_latch_proc : process(clk)
+    -- thresh_latch_proc : process(clk,rst)
+    -- begin
+        -- if rst = '1' then
+            -- threshold_flag <= '0';
+            -- state_thresh <= 0;           
+        -- elsif rising_edge(clk) then
+            -- if state_thresh = 0 then
+                -- if threshold_check_s = '1' then
+                    -- state_thresh <= 1;
+                -- else
+                    -- state_thresh <= 0;
+                -- end if;
+            -- elsif state_thresh = 1 then
+                -- if threshold_check_s = '0' then
+                    -- state_thresh <= 0;
+                -- elsif threshold_detected = '1' then
+                    -- threshold_flag <= '1';
+                -- end if;
+            -- end if;
+        -- end if;
+    -- end process;
+    
+    -- while loop control is waiting for xcorr process to finish, check for threshold and set flag 
+    thresh_proc : process(clk,rst)
     begin
         if rst = '1' then
             threshold_flag <= '0';
-            state_thresh <= 0;           
-        elsif state_thresh = 0 then
-            if threshold_check_s = '1' then
-                state_thresh <= 1;
+            state_thresh <= 0;
+        elsif rising_edge(clk) then
+            if state_loop = 3 then
+                if threshold_detected = '1' then
+                    threshold_flag <= '1';
+                end if;
             else
-                state_thresh <= 0;
-            end if;
-        elsif state_thresh = 1 then
-            if threshold_check_s = '0' then
-                state_thresh <= 0;
-            elsif threshold_detected = '1' then
-                threshold_flag <= '1';
+                threshold_flag <= '0';
             end if;
         end if;
     end process;
+                    
                 
             
                 
