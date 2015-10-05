@@ -16,7 +16,8 @@ entity xcorr_ctrl is
                 samp_ram_addr_length    : natural := 13;
                 samp_f_ram_addr_length  : natural := 13;
                 adc_samp_rate           : natural := 40; --kHz
-                mux_data_width          : natural := 16);
+                mux_data_width          : natural := 16;
+                n_fingerprints          : natural := 2); -- subtract 1 from desired #
 	Port(       --rst 			        : in std_logic;
 				clk 			        : in std_logic;
                 -- control signals
@@ -137,7 +138,7 @@ signal state_fwd_fft : natural range 0 to 10 := 0;
 signal zp : std_logic := '0';
 
 -- complex mult and ifft signals
-signal fp_ram_addra_s, fp_ram_addrb_s : std_logic_vector(samp_f_ram_addr_length - 1 downto 0);
+signal fp_ram_addra_s, fp_ram_addrb_s, fp_ram_max_addrb : std_logic_vector(samp_f_ram_addr_length - 1 downto 0);
 signal run_xcorr : std_logic := '0';
 signal state_xcorr : natural range 0 to 20 := 0;
 signal xcorr_busy : std_logic := '0'; -- 1= xcorr in middle of processing, 0 = xcorr not busy
@@ -151,10 +152,10 @@ signal threshold_check_s : std_logic := '0';
 signal threshold_flag : std_logic := '0';
 signal state_thresh : natural range 0 to 5 := 0;
 
-attribute keep : string;
-attribute keep of pad_count : signal is "true";
-attribute keep of pad_length : signal is "true";
+signal fp_index : natural range 0 to 30 := 0;
+signal fp_run_flag : std_logic := '0';
 
+attribute keep : string;
 attribute keep of run							    : signal is "true";
 attribute keep of state_adc							: signal is "true";
 attribute keep of state_cmd_decode					: signal is "true";
@@ -202,6 +203,7 @@ begin
         if rising_edge(clk) then
             case state_cmd_decode is
                 when 0 =>
+                    -- get commands from matlab
                     if rxbyte_ready = '1' then
                         run <= rxbyte_in(7);
                         rst <= rxbyte_in(6);  
@@ -212,6 +214,7 @@ begin
                         end if;
                         use_adc <= rxbyte_in(5);
                         run_once <= rxbyte_in(4);
+                        -- see FFT IP core datasheet for nfft settings
                         case rxbyte_in(3 downto 1) is
                             when "000" =>
                                 n_samples <= 256;
@@ -239,6 +242,7 @@ begin
                                 nfft_config <= "01101";
                         end case;			
                     end if;
+                -- send fft config command. rst must be 0
                 when 1 =>
                     run_fft_config <= '1';
                     state_cmd_decode <= 2;
@@ -251,7 +255,7 @@ begin
         end if;
     end process;
     
-    -- configure the fft and ifft ip blocks
+    -- configure the fft and ifft ip blocks. both use same nfft size and scaling schedule
     config_ffts : process(clk, rst)
     begin
         if rst = '1' then
@@ -295,6 +299,8 @@ begin
     end process;
                         
     -- control looping of xcorr calculation
+    -- process controls running of adc, fwd fft for sample, multiplication and ifft for xcorr, and alerts
+    -- will loop through run_xcorr and increment fingerprint memory address for up to n_fingerprints
     loop_control : process(clk, rst)
     begin
         if rst = '1' then
@@ -305,6 +311,7 @@ begin
                 when 0 =>
                     run_adc <= '0';
                     led <= '0';
+                    fp_index <= 0;
                     if run = '1' then
                         if use_adc = '1' then
                             run_adc <= '1';
@@ -326,7 +333,7 @@ begin
                     end if;
                 when 2 =>
                     run_fwd_fft <= '0';
-                    if fwd_fft_finished = '1' then
+                    if fwd_fft_finished = '1' or fp_run_flag = '1' then
                         run_xcorr <= '1';
                         state_loop <= 3;
                     else
@@ -335,17 +342,27 @@ begin
                 when 3 =>
                     run_xcorr <= '0';
                     if xcorr_finished = '1' then
-                        if threshold_flag = '1' then
-                            led <= '1';
-                            tx_start <= '1';
-                            state_loop <= 4;
+                        -- if all fingerprints have been compared, check threshold
+                        if fp_index = n_fingerprints then  
+                            fp_run_flag <= '0';
+                            if threshold_flag = '1' then
+                                led <= '1';
+                                tx_start <= '1';
+                                state_loop <= 4;
+                            else
+                                state_loop <= 5;
+                            end if;
+                        -- if fingerprints remain, increment address and continue checking
                         else
-                            state_loop <= 5;
+                            fp_index <= fp_index + 1;
+                            fp_run_flag <= '1';
+                            state_loop <= 2;
                         end if;
                     else
                         state_loop <= 3;
                     end if;
                 when 4 =>
+                    -- send resulting cross correlation to check against matlab version
                     tx_start <= '0';
                     if tx_finished = '1' then
                         state_loop <= 5;
@@ -479,7 +496,7 @@ begin
                         samp_ram_addrb_s <= std_logic_vector(to_unsigned(n_samples, samp_ram_addr_length));
                         samp_ram_max_addrb <= std_logic_vector(to_unsigned(2*n_samples - 1, samp_ram_addr_length));
                     else
-                    	samp_ram_addrb_s <= (others => '0');
+                        samp_ram_addrb_s <= (others => '0');
 						samp_ram_max_addrb <= std_logic_vector(to_unsigned(n_samples - 1, samp_ram_addr_length));
                     end if;
 				else
@@ -561,7 +578,9 @@ begin
         elsif rising_edge(clk) then
             if state_xcorr = 0 then       
                 threshold_check_s <= '0';
-                fp_ram_addrb_s <= (others => '0');
+                -- set fingerprint offset and max address           
+                fp_ram_addrb_s <= std_logic_vector(to_unsigned((n_fft * fp_index), samp_f_ram_addr_length));
+                fp_ram_max_addrb <= std_logic_vector(to_unsigned((n_fft * (fp_index + 1) ) - 2, samp_f_ram_addr_length));
                 mult_a_tvalid <= '0';
                 mult_a_tlast <= '0';
                 mult_b_tvalid <= '0';
@@ -584,7 +603,7 @@ begin
                 if mult_tready = '1' then
                     fp_ram_addrb_s <= std_logic_vector(unsigned(fp_ram_addrb_s) + 1);
                     samp_f_ram_addrb_s <= std_logic_vector(unsigned(samp_f_ram_addrb_s) + 1);
-                    if samp_f_ram_addrb_s = samp_f_ram_max_addrb then
+                    if fp_ram_addrb_s = fp_ram_max_addrb then
                         mult_a_tlast <= '1';
                         state_xcorr <= 2;
                     else
