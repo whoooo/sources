@@ -13,6 +13,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity xcorr_ctrl is 
     generic(    clk_rate                : natural := 100; -- MHz
+                fp_ram_addr_length      : natural := 15;
                 samp_ram_addr_length    : natural := 13;
                 samp_f_ram_addr_length  : natural := 13;
                 adc_samp_rate           : natural := 40; --kHz
@@ -54,7 +55,7 @@ entity xcorr_ctrl is
                 samp_f_ram_addra        : out std_logic_vector(samp_f_ram_addr_length - 1 downto 0);
                 samp_f_ram_addrb        : out std_logic_vector(samp_f_ram_addr_length - 1 downto 0);
                 -- fingerprint memory
-                fp_ram_addrb            : out std_logic_vector(samp_f_ram_addr_length - 1 downto 0);
+                fp_ram_addrb            : out std_logic_vector(fp_ram_addr_length - 1 downto 0);
                 
                 -- cmplx mult signals
                 mult_tready             : in std_logic;
@@ -138,7 +139,7 @@ signal state_fwd_fft : natural range 0 to 10 := 0;
 signal zp : std_logic := '0';
 
 -- complex mult and ifft signals
-signal fp_ram_addra_s, fp_ram_addrb_s, fp_ram_max_addrb : std_logic_vector(samp_f_ram_addr_length - 1 downto 0);
+signal fp_ram_addra_s, fp_ram_addrb_s, fp_ram_max_addrb : std_logic_vector(fp_ram_addr_length - 1 downto 0);
 signal run_xcorr : std_logic := '0';
 signal state_xcorr : natural range 0 to 20 := 0;
 signal xcorr_busy : std_logic := '0'; -- 1= xcorr in middle of processing, 0 = xcorr not busy
@@ -579,8 +580,8 @@ begin
             if state_xcorr = 0 then       
                 threshold_check_s <= '0';
                 -- set fingerprint offset and max address           
-                fp_ram_addrb_s <= std_logic_vector(to_unsigned((n_fft * fp_index), samp_f_ram_addr_length));
-                fp_ram_max_addrb <= std_logic_vector(to_unsigned((n_fft * (fp_index + 1) ) - 2, samp_f_ram_addr_length));
+                fp_ram_addrb_s <= std_logic_vector(to_unsigned((n_fft * fp_index), fp_ram_addr_length));
+                fp_ram_max_addrb <= std_logic_vector(to_unsigned((n_fft * (fp_index + 1) ) - 2, fp_ram_addr_length));
                 mult_a_tvalid <= '0';
                 mult_a_tlast <= '0';
                 mult_b_tvalid <= '0';

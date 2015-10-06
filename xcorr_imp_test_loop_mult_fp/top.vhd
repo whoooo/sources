@@ -17,6 +17,7 @@ end top;
 
 architecture behavioral of top is
 
+constant fp_ram_addr_length_c      : natural := 14;
 constant samp_ram_addr_length_c    : natural := 13;
 constant samp_f_ram_addr_length_c  : natural := 13;
 constant adc_samp_rate_c           : natural := 40;
@@ -45,7 +46,7 @@ signal adc_data_f : std_logic_vector(31 downto 0) := (others => '0');
 
 -- fingerprint memory
 signal fingerprint : std_logic_vector(31 downto 0) := (others => '0');
-signal fp_ram_addrb : std_logic_vector(samp_f_ram_addr_length_c - 1 downto 0) := (others => '0');
+signal fp_ram_addrb : std_logic_vector(fp_ram_addr_length_c - 1 downto 0) := (others => '0');
 
 -- xcorr memory                  
 signal xcorr_ram_wea : std_logic_vector(0 downto 0) := "0";        
@@ -159,6 +160,7 @@ uartRX : entity work.uart_rx
 
 control : entity work.xcorr_ctrl 
     generic map(    clk_rate                => 100,
+                    fp_ram_addr_length      => fp_ram_addr_length_c,
                     samp_ram_addr_length    => samp_ram_addr_length_c,
                     samp_f_ram_addr_length  => samp_f_ram_addr_length_c,
                     adc_samp_rate           => adc_samp_rate_c,
@@ -265,14 +267,23 @@ mem_samp_f_0 : entity work.mem_samp_f
                     addrb => samp_f_ram_addrb,
                     doutb => adc_data_f);   
                     
-mem_fp_ram_0 : entity work.mem_fp
+-- mem_fp_ram_0 : entity work.mem_fp
+    -- PORT MAP (      clka => clk,
+                    -- wea => "0",
+                    -- addra => (others => '0'),
+                    -- dina => (others => '0'),
+                    -- clkb => clk,
+                    -- addrb => fp_ram_addrb,
+                    -- doutb => fingerprint);
+                    
+mem_fp_ram_16384_0 : entity work.mem_fp_ram_16384
     PORT MAP (      clka => clk,
                     wea => "0",
                     addra => (others => '0'),
                     dina => (others => '0'),
                     clkb => clk,
                     addrb => fp_ram_addrb,
-                    doutb => fingerprint);
+                    doutb => fingerprint);                    
 
 cmplx_mult : entity work.cmpy_0
   PORT MAP (        aclk => clk,
