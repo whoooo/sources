@@ -6,12 +6,14 @@
 -- n_samples should be, at most, half of nfft to allow for zero padding. 
 -- zero padding length = n_fft - n_samples.
 
+-- v2: fixed adc data only being collected after xcorr operation finished.
+
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
-entity xcorr_ctrl is 
+entity xcorr_ctrl_v2 is 
     generic(    clk_rate                : natural := 100; -- MHz
                 fp_ram_addr_length      : natural := 15;
                 samp_ram_addr_length    : natural := 13;
@@ -32,9 +34,13 @@ entity xcorr_ctrl is
                 -- adc ports
                 busy                    : in std_logic;
                 rc                      : out std_logic;
+                -- adc memory mux
+                adc_mux_ctrl            : out std_logic;
                 -- sample ram ports
-                samp_ram_wea            : out std_logic_vector(0 downto 0);
-                samp_ram_addra          : out std_logic_vector(samp_ram_addr_length - 1 downto 0);
+                samp_ram0_wea           : out std_logic_vector(0 downto 0);
+                samp_ram1_wea           : out std_logic_vector(0 downto 0);
+                samp_ram0_addra         : out std_logic_vector(samp_ram_addr_length - 1 downto 0);
+                samp_ram1_addra         : out std_logic_vector(samp_ram_addr_length - 1 downto 0);                
                 samp_ram_addrb          : out std_logic_vector(samp_ram_addr_length - 1 downto 0);
                -- mux ports for zero padding
                 mux_in1                 : in std_logic_vector(mux_data_width-1 downto 0);
@@ -93,9 +99,9 @@ entity xcorr_ctrl is
                 led                     : out std_logic
 
 		);         
-end xcorr_ctrl;
+end xcorr_ctrl_v2;
 
-architecture Behavioral of xcorr_ctrl is
+architecture Behavioral of xcorr_ctrl_v2 is
 
 -- cmd decode signals
 signal run : std_logic := '0';
@@ -114,7 +120,7 @@ signal adc_counts : natural range 0 to 5000 := 0;
 signal adc_finished : std_logic:= '0';
 signal adc_counts_per_sample : natural range 50 to 5000 := 0;
 signal run_adc  : std_logic := '0';
-signal samp_ram_addra_s, samp_ram_addrb_s : std_logic_vector(samp_ram_addr_length - 1 downto 0);
+signal samp_ram0_addra_s, samp_ram1_addra_s, samp_ram_addrb_s : std_logic_vector(samp_ram_addr_length - 1 downto 0);
 signal samp_ram_max_addra, samp_ram_max_addrb : std_logic_vector(samp_ram_addr_length - 1 downto 0);
 signal samp_ram_flag : std_logic := '0'; -- switches range of values to read (allows for xcorr to be performed while data is taken in)
 signal state_adc : natural range 0 to 5;
@@ -176,7 +182,8 @@ begin
 
     adc_counts_per_sample <= (clk_rate * 1000) / adc_samp_rate; -- use to set sampling rate of adc from 20 to 100 kHz
 
-    samp_ram_addra <= samp_ram_addra_s;
+    samp_ram0_addra <= samp_ram0_addra_s;   
+    samp_ram1_addra <= samp_ram1_addra_s;
 	samp_ram_addrb <= samp_ram_addrb_s;
     
     samp_f_ram_addra <= samp_f_ram_addra_s;
@@ -303,7 +310,7 @@ begin
     end process;
                         
     -- control looping of xcorr calculation
-    -- process controls running of adc, fwd fft for sample, multiplication and ifft for xcorr, and alerts
+    -- process controls running of adc, fwd fft for sample, multiplication and ifft for xcorr, and alerts.
     -- will loop through run_xcorr and increment fingerprint memory address for up to n_fingerprints
     loop_control : process(clk, rst)
     begin
@@ -328,7 +335,6 @@ begin
                         state_loop <= 0;
                     end if;
                 when 1 =>
-                    run_adc <= '0';
                     if adc_finished = '1' then
                         run_fwd_fft <= '1';
                         state_loop <= 2;
@@ -384,6 +390,7 @@ begin
     end process;
  
     -- get adc data
+    -- if adc_mux_ctrl = 1 then samp_ram1 is valid, otherwise samp_ram0 is valid
     adc_proc : process(clk, rst)
     begin
 		if rst = '1' then

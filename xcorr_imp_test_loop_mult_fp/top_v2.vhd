@@ -1,11 +1,13 @@
 -- used for newer version of looping control logic- xcorr_ctrl, which combined functionality from multiple modules
 -- single fingerprint implementation which loops until threshold is surpassed, then sends data
 
+-- v2: includes changes due to fixes in xcorr_ctrl_v2
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
-entity top is
+entity top_v2 is
     port(   clk         : in std_logic;
             din     : in std_logic_vector(15 downto 0);
             busy        : in std_logic;
@@ -13,9 +15,9 @@ entity top is
             uart_out	: out std_logic;
             led         : out std_logic;
 			rc 			: out std_logic);  
-end top;
+end top_v2;
 
-architecture behavioral of top is
+architecture behavioral of top_v2 is
 
 constant fp_ram_addr_length_c      : natural := 14;
 constant samp_ram_addr_length_c    : natural := 13;
@@ -35,9 +37,12 @@ signal tx_ready, rxbyte_ready, tx_finished : std_logic := '0';
 signal uart_tx_start, uart_tx_done : std_logic := '0';
 signal rxbyte : std_logic_vector(7 downto 0) := x"00"; 
 
+-- adc memory muxing
+signal adc_mux_ctrl : std_logic := '0';
+
 -- sample memory (adc in)
-signal samp_ram_wea : std_logic_vector(0 downto 0) := "0";
-signal samp_ram_addra, samp_ram_addrb : std_logic_vector(samp_ram_addr_length_c - 1 downto 0) := (others => '0'); 
+signal samp_ram0_wea, samp_ram1_wea : std_logic_vector(0 downto 0) := "0";
+signal samp_ram0_addra, samp_ram1_addra, samp_ram_addrb : std_logic_vector(samp_ram_addr_length_c - 1 downto 0) := (others => '0'); 
 
 -- sample memory f 
 signal samp_f_ram_wea : std_logic_vector(0 downto 0) := "0";
@@ -54,7 +59,7 @@ signal xcorr_ram_addra, xcorr_ram_addrb : std_logic_vector(samp_f_ram_addr_lengt
  
 --mux signals
 signal adc_data_mux : std_logic_vector(15 downto 0) := (others => '0');
-signal adc_dout : std_logic_vector(15 downto 0) := (others => '0');
+signal adc_dout0, adc_dout1 : std_logic_vector(15 downto 0) := (others => '0');
 
 -- multiplier signals
 signal mult_tready, mult_a_tlast, mult_a_tvalid, mult_b_tvalid : std_logic := '0';
@@ -158,7 +163,7 @@ uartRX : entity work.uart_rx
                     rxbyte_out => rxbyte,
                     rxbyte_ready => rxbyte_ready);	           
 
-control : entity work.xcorr_ctrl 
+control : entity work.xcorr_ctrl_v2 
     generic map(    clk_rate                => 100,
                     fp_ram_addr_length      => fp_ram_addr_length_c,
                     samp_ram_addr_length    => samp_ram_addr_length_c,
@@ -177,12 +182,15 @@ control : entity work.xcorr_ctrl
                     -- adc ports
                     busy                    => busy,
                     rc                      => rc,
+                    -- adc memory mux
+                    adc_mux_ctrl            => adc_mux_ctrl,
                     -- sample ram ports
-                    samp_ram_wea            => samp_ram_wea,
+                    samp_ram0_wea           => samp_ram0_wea,
+                    samp_ram1_wea           => samp_ram1_wea,
                     samp_ram_addra          => samp_ram_addra,
                     samp_ram_addrb          => samp_ram_addrb,
                     -- mux ports for zero padding
-                    mux_in1                 => adc_dout,
+                    mux_in1                 => adc_mux_mem_data,
                     mux_in2                 => (others => '0'),
                     mux_out                 => adc_data_mux,        
                     -- fft signals
@@ -229,12 +237,29 @@ control : entity work.xcorr_ctrl
                     
 mem_samp0 : entity work.mem_samp
   PORT map(         clka => clk,
-                    wea => samp_ram_wea,
+                    wea => samp_ram0_wea,
                     addra => samp_ram_addra,
                     dina => din,
                     clkb => clk,
                     addrb => samp_ram_addrb,
-                    doutb => adc_dout);                
+                    doutb => adc_dout0);  
+
+mem_samp1 : entity work.mem_samp
+  PORT map(         clka => clk,
+                    wea => samp_ram1_wea,
+                    addra => samp_ram_addra,
+                    dina => din,
+                    clkb => clk,
+                    addrb => samp_ram_addrb,
+                    doutb => adc_dout1);    
+
+mux : entity work.mux_2to1
+    generic map (   data_width  => 16)    
+	port map    (   clk         => clk,
+                    i1          => adc_dout0,
+                    i2          => adc_dout1,
+                    control     => adc_mux_ctrl,
+                    o           => adc_mux_mem_data);
                     
 samp_fft1 : entity work.fft_fwd
 	PORT MAP(	    aclk => clk,

@@ -688,196 +688,208 @@ set_property MARK_DEBUG true [get_nets {samp_ram_addrb[9]}]
 set_property MARK_DEBUG true [get_nets {samp_ram_addrb[10]}]
 set_property MARK_DEBUG true [get_nets {samp_ram_addrb[11]}]
 set_property MARK_DEBUG true [get_nets {samp_ram_addrb[12]}]
-create_debug_core u_ila_0_0 ila
-set_property ALL_PROBE_SAME_MU true [get_debug_cores u_ila_0_0]
-set_property ALL_PROBE_SAME_MU_CNT 1 [get_debug_cores u_ila_0_0]
-set_property C_ADV_TRIGGER false [get_debug_cores u_ila_0_0]
-set_property C_DATA_DEPTH 8192 [get_debug_cores u_ila_0_0]
-set_property C_EN_STRG_QUAL false [get_debug_cores u_ila_0_0]
-set_property C_INPUT_PIPE_STAGES 0 [get_debug_cores u_ila_0_0]
-set_property C_TRIGIN_EN false [get_debug_cores u_ila_0_0]
-set_property C_TRIGOUT_EN false [get_debug_cores u_ila_0_0]
-set_property port_width 1 [get_debug_ports u_ila_0_0/clk]
-connect_debug_port u_ila_0_0/clk [get_nets [list xlnx_opt_]]
-set_property port_width 3 [get_debug_ports u_ila_0_0/probe0]
-connect_debug_port u_ila_0_0/probe0 [get_nets [list {control/state_adc[0]} {control/state_adc[1]} {control/state_adc[2]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 2 [get_debug_ports u_ila_0_0/probe1]
-connect_debug_port u_ila_0_0/probe1 [get_nets [list {control/state_cmd_decode[0]} {control/state_cmd_decode[1]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 3 [get_debug_ports u_ila_0_0/probe2]
-connect_debug_port u_ila_0_0/probe2 [get_nets [list {control/state_config_fft[0]} {control/state_config_fft[1]} {control/state_config_fft[2]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 3 [get_debug_ports u_ila_0_0/probe3]
-connect_debug_port u_ila_0_0/probe3 [get_nets [list {control/state_fwd_fft[0]} {control/state_fwd_fft[1]} {control/state_fwd_fft[2]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 3 [get_debug_ports u_ila_0_0/probe4]
-connect_debug_port u_ila_0_0/probe4 [get_nets [list {control/state_loop[0]} {control/state_loop[1]} {control/state_loop[2]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 2 [get_debug_ports u_ila_0_0/probe5]
-connect_debug_port u_ila_0_0/probe5 [get_nets [list {control/state_xcorr[0]} {control/state_xcorr[1]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 13 [get_debug_ports u_ila_0_0/probe6]
-connect_debug_port u_ila_0_0/probe6 [get_nets [list {fp_ram_addrb[0]} {fp_ram_addrb[1]} {fp_ram_addrb[2]} {fp_ram_addrb[3]} {fp_ram_addrb[4]} {fp_ram_addrb[5]} {fp_ram_addrb[6]} {fp_ram_addrb[7]} {fp_ram_addrb[8]} {fp_ram_addrb[9]} {fp_ram_addrb[10]} {fp_ram_addrb[11]} {fp_ram_addrb[12]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 13 [get_debug_ports u_ila_0_0/probe7]
-connect_debug_port u_ila_0_0/probe7 [get_nets [list {samp_f_ram_addra[0]} {samp_f_ram_addra[1]} {samp_f_ram_addra[2]} {samp_f_ram_addra[3]} {samp_f_ram_addra[4]} {samp_f_ram_addra[5]} {samp_f_ram_addra[6]} {samp_f_ram_addra[7]} {samp_f_ram_addra[8]} {samp_f_ram_addra[9]} {samp_f_ram_addra[10]} {samp_f_ram_addra[11]} {samp_f_ram_addra[12]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 13 [get_debug_ports u_ila_0_0/probe8]
-connect_debug_port u_ila_0_0/probe8 [get_nets [list {samp_f_ram_addrb[0]} {samp_f_ram_addrb[1]} {samp_f_ram_addrb[2]} {samp_f_ram_addrb[3]} {samp_f_ram_addrb[4]} {samp_f_ram_addrb[5]} {samp_f_ram_addrb[6]} {samp_f_ram_addrb[7]} {samp_f_ram_addrb[8]} {samp_f_ram_addrb[9]} {samp_f_ram_addrb[10]} {samp_f_ram_addrb[11]} {samp_f_ram_addrb[12]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 13 [get_debug_ports u_ila_0_0/probe9]
-connect_debug_port u_ila_0_0/probe9 [get_nets [list {samp_ram_addra[0]} {samp_ram_addra[1]} {samp_ram_addra[2]} {samp_ram_addra[3]} {samp_ram_addra[4]} {samp_ram_addra[5]} {samp_ram_addra[6]} {samp_ram_addra[7]} {samp_ram_addra[8]} {samp_ram_addra[9]} {samp_ram_addra[10]} {samp_ram_addra[11]} {samp_ram_addra[12]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 13 [get_debug_ports u_ila_0_0/probe10]
-connect_debug_port u_ila_0_0/probe10 [get_nets [list {samp_ram_addrb[0]} {samp_ram_addrb[1]} {samp_ram_addrb[2]} {samp_ram_addrb[3]} {samp_ram_addrb[4]} {samp_ram_addrb[5]} {samp_ram_addrb[6]} {samp_ram_addrb[7]} {samp_ram_addrb[8]} {samp_ram_addrb[9]} {samp_ram_addrb[10]} {samp_ram_addrb[11]} {samp_ram_addrb[12]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 14 [get_debug_ports u_ila_0_0/probe11]
-connect_debug_port u_ila_0_0/probe11 [get_nets [list {scaling_sch[0]} {scaling_sch[1]} {scaling_sch[2]} {scaling_sch[3]} {scaling_sch[4]} {scaling_sch[5]} {scaling_sch[6]} {scaling_sch[7]} {scaling_sch[8]} {scaling_sch[9]} {scaling_sch[10]} {scaling_sch[11]} {scaling_sch[12]} {scaling_sch[13]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 13 [get_debug_ports u_ila_0_0/probe12]
-connect_debug_port u_ila_0_0/probe12 [get_nets [list {xcorr_ram_addra[0]} {xcorr_ram_addra[1]} {xcorr_ram_addra[2]} {xcorr_ram_addra[3]} {xcorr_ram_addra[4]} {xcorr_ram_addra[5]} {xcorr_ram_addra[6]} {xcorr_ram_addra[7]} {xcorr_ram_addra[8]} {xcorr_ram_addra[9]} {xcorr_ram_addra[10]} {xcorr_ram_addra[11]} {xcorr_ram_addra[12]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 13 [get_debug_ports u_ila_0_0/probe13]
-connect_debug_port u_ila_0_0/probe13 [get_nets [list {xcorr_ram_addrb[0]} {xcorr_ram_addrb[1]} {xcorr_ram_addrb[2]} {xcorr_ram_addrb[3]} {xcorr_ram_addrb[4]} {xcorr_ram_addrb[5]} {xcorr_ram_addrb[6]} {xcorr_ram_addrb[7]} {xcorr_ram_addrb[8]} {xcorr_ram_addrb[9]} {xcorr_ram_addrb[10]} {xcorr_ram_addrb[11]} {xcorr_ram_addrb[12]}]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe14]
-connect_debug_port u_ila_0_0/probe14 [get_nets [list event_data_in_channel_halt_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe15]
-connect_debug_port u_ila_0_0/probe15 [get_nets [list event_data_in_channel_halt_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe16]
-connect_debug_port u_ila_0_0/probe16 [get_nets [list event_data_out_channel_halt_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe17]
-connect_debug_port u_ila_0_0/probe17 [get_nets [list event_data_out_channel_halt_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe18]
-connect_debug_port u_ila_0_0/probe18 [get_nets [list event_frame_started_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe19]
-connect_debug_port u_ila_0_0/probe19 [get_nets [list event_frame_started_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe20]
-connect_debug_port u_ila_0_0/probe20 [get_nets [list event_status_channel_halt_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe21]
-connect_debug_port u_ila_0_0/probe21 [get_nets [list event_status_channel_halt_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe22]
-connect_debug_port u_ila_0_0/probe22 [get_nets [list event_tlast_missing_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe23]
-connect_debug_port u_ila_0_0/probe23 [get_nets [list event_tlast_missing_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe24]
-connect_debug_port u_ila_0_0/probe24 [get_nets [list event_tlast_unexpected_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe25]
-connect_debug_port u_ila_0_0/probe25 [get_nets [list event_tlast_unexpected_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe26]
-connect_debug_port u_ila_0_0/probe26 [get_nets [list fft_rst]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe27]
-connect_debug_port u_ila_0_0/probe27 [get_nets [list led_s]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe28]
-connect_debug_port u_ila_0_0/probe28 [get_nets [list m_axis_data_tlast_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe29]
-connect_debug_port u_ila_0_0/probe29 [get_nets [list m_axis_data_tlast_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe30]
-connect_debug_port u_ila_0_0/probe30 [get_nets [list m_axis_data_tready_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe31]
-connect_debug_port u_ila_0_0/probe31 [get_nets [list m_axis_data_tready_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe32]
-connect_debug_port u_ila_0_0/probe32 [get_nets [list m_axis_data_tvalid_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe33]
-connect_debug_port u_ila_0_0/probe33 [get_nets [list m_axis_data_tvalid_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe34]
-connect_debug_port u_ila_0_0/probe34 [get_nets [list mult_a_tlast]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe35]
-connect_debug_port u_ila_0_0/probe35 [get_nets [list mult_b_tvalid]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe36]
-connect_debug_port u_ila_0_0/probe36 [get_nets [list mult_tready]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe37]
-connect_debug_port u_ila_0_0/probe37 [get_nets [list rst]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe38]
-connect_debug_port u_ila_0_0/probe38 [get_nets [list control/run]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe39]
-connect_debug_port u_ila_0_0/probe39 [get_nets [list rxbyte_ready]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe40]
-connect_debug_port u_ila_0_0/probe40 [get_nets [list s_axis_config_tready_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe41]
-connect_debug_port u_ila_0_0/probe41 [get_nets [list s_axis_config_tready_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe42]
-connect_debug_port u_ila_0_0/probe42 [get_nets [list s_axis_config_tvalid_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe43]
-connect_debug_port u_ila_0_0/probe43 [get_nets [list s_axis_data_tlast_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe44]
-connect_debug_port u_ila_0_0/probe44 [get_nets [list s_axis_data_tlast_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe45]
-connect_debug_port u_ila_0_0/probe45 [get_nets [list s_axis_data_tready_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe46]
-connect_debug_port u_ila_0_0/probe46 [get_nets [list s_axis_data_tready_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe47]
-connect_debug_port u_ila_0_0/probe47 [get_nets [list s_axis_data_tvalid_f]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe48]
-connect_debug_port u_ila_0_0/probe48 [get_nets [list s_axis_data_tvalid_r]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe49]
-connect_debug_port u_ila_0_0/probe49 [get_nets [list samp_f_ram_wea]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe50]
-connect_debug_port u_ila_0_0/probe50 [get_nets [list control/samp_ram_flag]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe51]
-connect_debug_port u_ila_0_0/probe51 [get_nets [list samp_ram_wea]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe52]
-connect_debug_port u_ila_0_0/probe52 [get_nets [list threshold_check]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe53]
-connect_debug_port u_ila_0_0/probe53 [get_nets [list threshold_detected]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe54]
-connect_debug_port u_ila_0_0/probe54 [get_nets [list control/threshold_flag]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe55]
-connect_debug_port u_ila_0_0/probe55 [get_nets [list tx_finished]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe56]
-connect_debug_port u_ila_0_0/probe56 [get_nets [list tx_ready]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe57]
-connect_debug_port u_ila_0_0/probe57 [get_nets [list uart_tx_done]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe58]
-connect_debug_port u_ila_0_0/probe58 [get_nets [list uart_tx_start]]
-create_debug_port u_ila_0_0 probe
-set_property port_width 1 [get_debug_ports u_ila_0_0/probe59]
-connect_debug_port u_ila_0_0/probe59 [get_nets [list control/zp]]
+
+set_property MARK_DEBUG true [get_nets {control/fp_index[4]}]
+set_property MARK_DEBUG true [get_nets {control/fp_index[0]}]
+set_property MARK_DEBUG true [get_nets {control/fp_index[1]}]
+set_property MARK_DEBUG true [get_nets {control/fp_index[2]}]
+set_property MARK_DEBUG true [get_nets {control/fp_index[3]}]
+create_debug_core u_ila_0 ila
+set_property ALL_PROBE_SAME_MU true [get_debug_cores u_ila_0]
+set_property ALL_PROBE_SAME_MU_CNT 1 [get_debug_cores u_ila_0]
+set_property C_ADV_TRIGGER false [get_debug_cores u_ila_0]
+set_property C_DATA_DEPTH 8192 [get_debug_cores u_ila_0]
+set_property C_EN_STRG_QUAL false [get_debug_cores u_ila_0]
+set_property C_INPUT_PIPE_STAGES 0 [get_debug_cores u_ila_0]
+set_property C_TRIGIN_EN false [get_debug_cores u_ila_0]
+set_property C_TRIGOUT_EN false [get_debug_cores u_ila_0]
+set_property port_width 1 [get_debug_ports u_ila_0/clk]
+connect_debug_port u_ila_0/clk [get_nets [list xlnx_opt_]]
+set_property port_width 5 [get_debug_ports u_ila_0/probe0]
+connect_debug_port u_ila_0/probe0 [get_nets [list {control/fp_index[0]} {control/fp_index[1]} {control/fp_index[2]} {control/fp_index[3]} {control/fp_index[4]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 12 [get_debug_ports u_ila_0/probe1]
+connect_debug_port u_ila_0/probe1 [get_nets [list {control/samp_ram_addrb_s[1]} {control/samp_ram_addrb_s[2]} {control/samp_ram_addrb_s[3]} {control/samp_ram_addrb_s[4]} {control/samp_ram_addrb_s[5]} {control/samp_ram_addrb_s[6]} {control/samp_ram_addrb_s[7]} {control/samp_ram_addrb_s[8]} {control/samp_ram_addrb_s[9]} {control/samp_ram_addrb_s[10]} {control/samp_ram_addrb_s[11]} {control/samp_ram_addrb_s[12]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 2 [get_debug_ports u_ila_0/probe2]
+connect_debug_port u_ila_0/probe2 [get_nets [list {control/state_xcorr[0]} {control/state_xcorr[1]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 3 [get_debug_ports u_ila_0/probe3]
+connect_debug_port u_ila_0/probe3 [get_nets [list {control/state_loop[0]} {control/state_loop[1]} {control/state_loop[2]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 3 [get_debug_ports u_ila_0/probe4]
+connect_debug_port u_ila_0/probe4 [get_nets [list {control/state_fwd_fft[0]} {control/state_fwd_fft[1]} {control/state_fwd_fft[2]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 3 [get_debug_ports u_ila_0/probe5]
+connect_debug_port u_ila_0/probe5 [get_nets [list {control/state_config_fft[0]} {control/state_config_fft[1]} {control/state_config_fft[2]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 2 [get_debug_ports u_ila_0/probe6]
+connect_debug_port u_ila_0/probe6 [get_nets [list {control/state_cmd_decode[0]} {control/state_cmd_decode[1]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 3 [get_debug_ports u_ila_0/probe7]
+connect_debug_port u_ila_0/probe7 [get_nets [list {control/state_adc[0]} {control/state_adc[1]} {control/state_adc[2]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 13 [get_debug_ports u_ila_0/probe8]
+connect_debug_port u_ila_0/probe8 [get_nets [list {samp_ram_addra[0]} {samp_ram_addra[1]} {samp_ram_addra[2]} {samp_ram_addra[3]} {samp_ram_addra[4]} {samp_ram_addra[5]} {samp_ram_addra[6]} {samp_ram_addra[7]} {samp_ram_addra[8]} {samp_ram_addra[9]} {samp_ram_addra[10]} {samp_ram_addra[11]} {samp_ram_addra[12]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 13 [get_debug_ports u_ila_0/probe9]
+connect_debug_port u_ila_0/probe9 [get_nets [list {xcorr_ram_addrb[0]} {xcorr_ram_addrb[1]} {xcorr_ram_addrb[2]} {xcorr_ram_addrb[3]} {xcorr_ram_addrb[4]} {xcorr_ram_addrb[5]} {xcorr_ram_addrb[6]} {xcorr_ram_addrb[7]} {xcorr_ram_addrb[8]} {xcorr_ram_addrb[9]} {xcorr_ram_addrb[10]} {xcorr_ram_addrb[11]} {xcorr_ram_addrb[12]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 13 [get_debug_ports u_ila_0/probe10]
+connect_debug_port u_ila_0/probe10 [get_nets [list {xcorr_ram_addra[0]} {xcorr_ram_addra[1]} {xcorr_ram_addra[2]} {xcorr_ram_addra[3]} {xcorr_ram_addra[4]} {xcorr_ram_addra[5]} {xcorr_ram_addra[6]} {xcorr_ram_addra[7]} {xcorr_ram_addra[8]} {xcorr_ram_addra[9]} {xcorr_ram_addra[10]} {xcorr_ram_addra[11]} {xcorr_ram_addra[12]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 14 [get_debug_ports u_ila_0/probe11]
+connect_debug_port u_ila_0/probe11 [get_nets [list {scaling_sch[0]} {scaling_sch[1]} {scaling_sch[2]} {scaling_sch[3]} {scaling_sch[4]} {scaling_sch[5]} {scaling_sch[6]} {scaling_sch[7]} {scaling_sch[8]} {scaling_sch[9]} {scaling_sch[10]} {scaling_sch[11]} {scaling_sch[12]} {scaling_sch[13]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 13 [get_debug_ports u_ila_0/probe12]
+connect_debug_port u_ila_0/probe12 [get_nets [list {samp_ram_addrb[0]} {samp_ram_addrb[1]} {samp_ram_addrb[2]} {samp_ram_addrb[3]} {samp_ram_addrb[4]} {samp_ram_addrb[5]} {samp_ram_addrb[6]} {samp_ram_addrb[7]} {samp_ram_addrb[8]} {samp_ram_addrb[9]} {samp_ram_addrb[10]} {samp_ram_addrb[11]} {samp_ram_addrb[12]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 13 [get_debug_ports u_ila_0/probe13]
+connect_debug_port u_ila_0/probe13 [get_nets [list {samp_f_ram_addrb[0]} {samp_f_ram_addrb[1]} {samp_f_ram_addrb[2]} {samp_f_ram_addrb[3]} {samp_f_ram_addrb[4]} {samp_f_ram_addrb[5]} {samp_f_ram_addrb[6]} {samp_f_ram_addrb[7]} {samp_f_ram_addrb[8]} {samp_f_ram_addrb[9]} {samp_f_ram_addrb[10]} {samp_f_ram_addrb[11]} {samp_f_ram_addrb[12]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 13 [get_debug_ports u_ila_0/probe14]
+connect_debug_port u_ila_0/probe14 [get_nets [list {samp_f_ram_addra[0]} {samp_f_ram_addra[1]} {samp_f_ram_addra[2]} {samp_f_ram_addra[3]} {samp_f_ram_addra[4]} {samp_f_ram_addra[5]} {samp_f_ram_addra[6]} {samp_f_ram_addra[7]} {samp_f_ram_addra[8]} {samp_f_ram_addra[9]} {samp_f_ram_addra[10]} {samp_f_ram_addra[11]} {samp_f_ram_addra[12]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 13 [get_debug_ports u_ila_0/probe15]
+connect_debug_port u_ila_0/probe15 [get_nets [list {fp_ram_addrb[0]} {fp_ram_addrb[1]} {fp_ram_addrb[2]} {fp_ram_addrb[3]} {fp_ram_addrb[4]} {fp_ram_addrb[5]} {fp_ram_addrb[6]} {fp_ram_addrb[7]} {fp_ram_addrb[8]} {fp_ram_addrb[9]} {fp_ram_addrb[10]} {fp_ram_addrb[11]} {fp_ram_addrb[12]}]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe16]
+connect_debug_port u_ila_0/probe16 [get_nets [list event_data_in_channel_halt_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe17]
+connect_debug_port u_ila_0/probe17 [get_nets [list event_data_in_channel_halt_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe18]
+connect_debug_port u_ila_0/probe18 [get_nets [list event_data_out_channel_halt_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe19]
+connect_debug_port u_ila_0/probe19 [get_nets [list event_data_out_channel_halt_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe20]
+connect_debug_port u_ila_0/probe20 [get_nets [list event_frame_started_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe21]
+connect_debug_port u_ila_0/probe21 [get_nets [list event_frame_started_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe22]
+connect_debug_port u_ila_0/probe22 [get_nets [list event_status_channel_halt_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe23]
+connect_debug_port u_ila_0/probe23 [get_nets [list event_status_channel_halt_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe24]
+connect_debug_port u_ila_0/probe24 [get_nets [list event_tlast_missing_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe25]
+connect_debug_port u_ila_0/probe25 [get_nets [list event_tlast_missing_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe26]
+connect_debug_port u_ila_0/probe26 [get_nets [list event_tlast_unexpected_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe27]
+connect_debug_port u_ila_0/probe27 [get_nets [list event_tlast_unexpected_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe28]
+connect_debug_port u_ila_0/probe28 [get_nets [list fft_rst]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe29]
+connect_debug_port u_ila_0/probe29 [get_nets [list led_s]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe30]
+connect_debug_port u_ila_0/probe30 [get_nets [list m_axis_data_tlast_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe31]
+connect_debug_port u_ila_0/probe31 [get_nets [list m_axis_data_tlast_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe32]
+connect_debug_port u_ila_0/probe32 [get_nets [list m_axis_data_tready_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe33]
+connect_debug_port u_ila_0/probe33 [get_nets [list m_axis_data_tready_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe34]
+connect_debug_port u_ila_0/probe34 [get_nets [list m_axis_data_tvalid_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe35]
+connect_debug_port u_ila_0/probe35 [get_nets [list m_axis_data_tvalid_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe36]
+connect_debug_port u_ila_0/probe36 [get_nets [list mult_a_tlast]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe37]
+connect_debug_port u_ila_0/probe37 [get_nets [list mult_b_tvalid]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe38]
+connect_debug_port u_ila_0/probe38 [get_nets [list mult_tready]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe39]
+connect_debug_port u_ila_0/probe39 [get_nets [list rst]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe40]
+connect_debug_port u_ila_0/probe40 [get_nets [list control/run]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe41]
+connect_debug_port u_ila_0/probe41 [get_nets [list rxbyte_ready]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe42]
+connect_debug_port u_ila_0/probe42 [get_nets [list s_axis_config_tready_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe43]
+connect_debug_port u_ila_0/probe43 [get_nets [list s_axis_config_tready_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe44]
+connect_debug_port u_ila_0/probe44 [get_nets [list s_axis_config_tvalid_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe45]
+connect_debug_port u_ila_0/probe45 [get_nets [list s_axis_data_tlast_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe46]
+connect_debug_port u_ila_0/probe46 [get_nets [list s_axis_data_tlast_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe47]
+connect_debug_port u_ila_0/probe47 [get_nets [list s_axis_data_tready_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe48]
+connect_debug_port u_ila_0/probe48 [get_nets [list s_axis_data_tready_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe49]
+connect_debug_port u_ila_0/probe49 [get_nets [list s_axis_data_tvalid_f]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe50]
+connect_debug_port u_ila_0/probe50 [get_nets [list s_axis_data_tvalid_r]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe51]
+connect_debug_port u_ila_0/probe51 [get_nets [list samp_f_ram_wea]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe52]
+connect_debug_port u_ila_0/probe52 [get_nets [list control/samp_ram_flag]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe53]
+connect_debug_port u_ila_0/probe53 [get_nets [list samp_ram_wea]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe54]
+connect_debug_port u_ila_0/probe54 [get_nets [list threshold_check]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe55]
+connect_debug_port u_ila_0/probe55 [get_nets [list threshold_detected]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe56]
+connect_debug_port u_ila_0/probe56 [get_nets [list control/threshold_flag]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe57]
+connect_debug_port u_ila_0/probe57 [get_nets [list tx_finished]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe58]
+connect_debug_port u_ila_0/probe58 [get_nets [list tx_ready]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe59]
+connect_debug_port u_ila_0/probe59 [get_nets [list uart_tx_done]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe60]
+connect_debug_port u_ila_0/probe60 [get_nets [list uart_tx_start]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe61]
+connect_debug_port u_ila_0/probe61 [get_nets [list control/zp]]
 set_property C_CLK_INPUT_FREQ_HZ 300000000 [get_debug_cores dbg_hub]
 set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
 set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
