@@ -363,16 +363,18 @@ threshold_detector : entity work.threshold_detect
                     xcorr_in => xcorr(31 downto 0),
                     flag => threshold_detected);
                     
-ram2uart : entity work.ram_to_uart_v2
-        generic map(addr_width => 13)
-        port map(	clk => clk,
-                    rst => rst,
-                    start => uart_tx_start,
-                    txfinished => tx_finished,
-                    max_addr => n_fft, 
-                    done => uart_tx_done,   
-                    addr_out => xcorr_ram_addrb,
-                    tx_ready => tx_ready);
+-- ram2uart : entity work.ram_to_uart_v2
+        -- generic map(addr_width => 13)
+        -- port map(	clk => clk,
+                    -- rst => rst,
+                    -- start => uart_tx_start,
+                    -- txfinished => tx_finished,
+                    -- max_addr => n_fft, 
+                    -- done => uart_tx_done,   
+                    -- addr_out => xcorr_ram_addrb,
+                    -- tx_ready => tx_ready);
+					
+-- **** replace with module to send n_detections, n_detections_total, and fp_match index
 
 uartTX1 : entity work.uart_tx_generic
         generic map(clock_counts_per_bit => 868,

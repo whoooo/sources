@@ -85,8 +85,12 @@ entity xcorr_ctrl_v2 is
                                
 				fft_rst			        : out std_logic;
                 rst_out                 : out std_logic;
-
-                
+				
+				-- data to send over uart
+				n_detections			: out std_logic_vector(15 downto 0); -- 16 bit unsigned in matlab
+				n_detections_total		: out std_logic_vector(15 downto 0); -- 16 bit unsigned in matlab
+				fp_match_index			: out std_logic_vector(31 downto 0); -- 32 bit unsigned in matlab
+              
                 -- uart rx signals
                 rxbyte_ready            : in std_logic;
                 rxbyte_in               : in std_logic_vector(7 downto 0);
@@ -159,8 +163,14 @@ signal threshold_check_s : std_logic := '0';
 signal threshold_flag : std_logic := '0';
 signal state_thresh : natural range 0 to 5 := 0;
 
-signal fp_index : natural range 0 to 30 := 0;
-signal fp_run_flag : std_logic := '0';
+-- fingerprint signals
+signal fp_index : natural range 0 to 30 := 0; -- index of current fingerprint
+signal fp_match_index_s : std_logic_vector(n_fingerprints downto 0) <= (others => '0'); -- stores indices of matches to send to matlab
+signal fp_run_flag : std_logic := '0'; -- flag to allow run_xcorr in loop_control process to run multiple times
+
+-- led signals
+signal n_detections_s : natural range 0 to 300 := 0; -- cycles with events detected (ex 3 events in one cycle, 5 events in next, 0 in following, result = 2)
+signal n_detections_total_s : natural range 0 to 1000 := 0; -- total events (ex 3 events in one cycle, 5 events in next, result = 8)
 
 attribute keep : string;
 attribute keep of run							    : signal is "true";
@@ -201,6 +211,10 @@ begin
     n_fft_out <= n_fft;
     
     rst_out <= rst;
+	
+	fp_match_index_s(n_fingerprints downto 0) <= fp_match_index;
+	n_detections_total <= n_detections_total_s;
+	n_detections <= n_detections_s;
 
     
     -- decode uart data to get commands and configs
@@ -317,23 +331,29 @@ begin
         if rst = '1' then
             run_adc <= '0';
             state_loop <= 0;
+			n_detections_s <= 0;
+			n_detections_total_s <= 0;
         elsif rising_edge(clk) then
             case state_loop is
+				-- wait for run cmd
                 when 0 =>
-                    run_adc <= '0';
+                    -- run_adc <= '0';
                     led <= '0';
                     fp_index <= 0;
+					fp_match_index_s <= (others => '0');
                     if run = '1' then
                         if use_adc = '1' then
                             run_adc <= '1';
                             state_loop <= 1;
                         else
+							run_adc <= '0';
                             run_fwd_fft <= '1';
                             state_loop <= 2;
                         end if;
                     else
                         state_loop <= 0;
                     end if;
+				-- wait for adc to finish
                 when 1 =>
                     if adc_finished = '1' then
                         run_fwd_fft <= '1';
@@ -341,6 +361,7 @@ begin
                     else
                         state_loop <= 1;
                     end if;
+				-- wait for fwd fft to finish, then run xcorr. repeat until all fingerprints have been xcorr'd
                 when 2 =>
                     run_fwd_fft <= '0';
                     if fwd_fft_finished = '1' or fp_run_flag = '1' then
@@ -349,14 +370,21 @@ begin
                     else
                         state_loop <= 2;
                     end if;
+				-- wait for xcorr to finish, then repeat if fingerprints remain, or continue to next state
                 when 3 =>
                     run_xcorr <= '0';
                     if xcorr_finished = '1' then
+						-- set corresponding index's flag in fp_match_index_s if match is detected
+						if threshold_flag = '1' then
+							fp_match_index_s(fp_index) <= '1';
+							n_detections_total_s <= n_detections_total_s + 1;
+						end if;
                         -- if all fingerprints have been compared, check threshold
                         if fp_index = n_fingerprints then  
                             fp_run_flag <= '0';
-                            if threshold_flag = '1' then
-                                led <= '1';
+							-- if a match was detected and recorded in fp_match_index_s, send its index via uart
+                            if fp_match_index_s /= std_logic_vector(to_unsigned(0, n_fingerprints)) then
+                                n_detections_s <= n_detections_s + 1;
                                 tx_start <= '1';
                                 state_loop <= 4;
                             else
@@ -371,8 +399,8 @@ begin
                     else
                         state_loop <= 3;
                     end if;
+				-- send results via serial
                 when 4 =>
-                    -- send resulting cross correlation to check against matlab version
                     tx_start <= '0';
                     if tx_finished = '1' then
                         state_loop <= 5;
@@ -587,6 +615,7 @@ begin
         if rst = '1' then
             state_xcorr <= 0;
         elsif rising_edge(clk) then
+			-- wait for run_xcorr command (occurs after fwd_fft process is complete)
             if state_xcorr = 0 then       
                 threshold_check_s <= '0';
                 -- set fingerprint offset and max address           
@@ -623,6 +652,7 @@ begin
                 else
                     state_xcorr <= 1;
                 end if;
+			-- tell ifft that ram is ready to store data, then save data as it comes out
             elsif state_xcorr = 2 then
                 mult_a_tlast <= '0';
                 mult_a_tvalid <= '0';
@@ -636,11 +666,12 @@ begin
                 else
                     state_xcorr <= 2;
                 end if;
+			-- continue to save xcorr data until tlast is asserted by ifft
             elsif state_xcorr = 3 then
                 if m_axis_data_tvalid_r = '1' then
                     xcorr_ram_addra_s <= std_logic_vector(unsigned(xcorr_ram_addra_s) + 1);
                     if m_axis_data_tlast_r = '1' then
-                        threshold_check_s <= '0';
+                        -- threshold_check_s <= '0';
                         xcorr_ram_wea <= "0";
                         xcorr_finished <= '1';
                         state_xcorr <= 0;
