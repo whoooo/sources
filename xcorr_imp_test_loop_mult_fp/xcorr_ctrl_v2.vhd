@@ -98,8 +98,7 @@ entity xcorr_ctrl_v2 is
                 tx_start                : out std_logic;
                 tx_finished             : in std_logic;
                 n_fft_out               : out natural range 0 to 8192;
-
-                
+               
                 led                     : out std_logic
 
 		);         
@@ -165,7 +164,7 @@ signal state_thresh : natural range 0 to 5 := 0;
 
 -- fingerprint signals
 signal fp_index : natural range 0 to 30 := 0; -- index of current fingerprint
-signal fp_match_index_s : std_logic_vector(n_fingerprints downto 0) <= (others => '0'); -- stores indices of matches to send to matlab
+signal fp_match_index_s : std_logic_vector(n_fingerprints downto 0) := (others => '0'); -- stores indices of matches to send to matlab
 signal fp_run_flag : std_logic := '0'; -- flag to allow run_xcorr in loop_control process to run multiple times
 
 -- led signals
@@ -213,8 +212,8 @@ begin
     rst_out <= rst;
 	
 	fp_match_index_s(n_fingerprints downto 0) <= fp_match_index;
-	n_detections_total <= n_detections_total_s;
-	n_detections <= n_detections_s;
+	n_detections_total <= std_logic_vector(unsigned(n_detections_total_s, 16));
+	n_detections <= std_logic_vector(unsigned(n_detections_s, 16));
 
     
     -- decode uart data to get commands and configs

@@ -149,7 +149,8 @@ attribute keep of event_data_out_channel_halt_f		: signal is "true";
 
 begin
 
-led <= led_s;
+-- led <= led_s;
+led(15 downto 0) <= n_detections;
 
 vio : entity work.vio_0
     PORT MAP (      clk => clk,
@@ -374,12 +375,11 @@ threshold_detector : entity work.threshold_detect
                     -- addr_out => xcorr_ram_addrb,
                     -- tx_ready => tx_ready);
 					
--- **** replace with module to send n_detections, n_detections_total, and fp_match index
 
 uartTX1 : entity work.uart_tx_generic
         generic map(clock_counts_per_bit => 868,
                     n_bytes => 8)
-        port map(	data_in => xcorr_out,		
+        port map(	data_in => n_detections & n_detections_total & fp_match_index,		
                     byte_in_flag => tx_ready, 			
                     clk => clk,					
                     txfinished => tx_finished,			
