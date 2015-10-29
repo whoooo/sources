@@ -38,9 +38,10 @@ signal uart_tx_start, uart_tx_done : std_logic := '0';
 signal rxbyte : std_logic_vector(7 downto 0) := x"00"; 
 
 -- adc memory muxing
-signal adc_mux_ctrl : std_logic := '0';
+signal samp_ram_flag : std_logic := '0';
 
 -- sample memory (adc in)
+signal samp_overlap_quarters : natural range 0 to 3 := 1;
 signal samp_ram0_wea, samp_ram1_wea : std_logic_vector(0 downto 0) := "0";
 signal samp_ram0_addra, samp_ram1_addra, samp_ram_addrb : std_logic_vector(samp_ram_addr_length_c - 1 downto 0) := (others => '0'); 
 
@@ -150,12 +151,17 @@ attribute keep of event_data_out_channel_halt_f		: signal is "true";
 begin
 
 -- led <= led_s;
+
+-- ***** use switch to control what's shown on led. latch fp_match_index?
 led(15 downto 0) <= n_detections;
+
+-- *** set overlap with switch
 
 vio : entity work.vio_0
     PORT MAP (      clk => clk,
                     probe_out0 => scaling_sch,
                     probe_out1 => threshold);
+						-- ********************** add samp_overlap_quarters
 
 uartRX : entity work.uart_rx
 	generic map(    clk_counts_per_bit  => 868)
@@ -184,12 +190,15 @@ control : entity work.xcorr_ctrl_v2
                     busy                    => busy,
                     rc                      => rc,
                     -- adc memory mux
-                    adc_mux_ctrl            => adc_mux_ctrl,
+                    samp_ram_flag           => samp_ram_flag,
                     -- sample ram ports
+					samp_overlap			=> samp_overlap_quarters,
                     samp_ram0_wea           => samp_ram0_wea,
                     samp_ram1_wea           => samp_ram1_wea,
-                    samp_ram_addra          => samp_ram_addra,
-                    samp_ram_addrb          => samp_ram_addrb,
+                    samp_ram0_addra         => samp_ram0_addra,
+                    samp_ram0_addrb         => samp_ram0_addrb,
+                    samp_ram1_addra         => samp_ram1_addra,
+                    samp_ram1_addrb         => samp_ram1_addrb,					
                     -- mux ports for zero padding
                     mux_in1                 => adc_mux_mem_data,
                     mux_in2                 => (others => '0'),
@@ -239,19 +248,19 @@ control : entity work.xcorr_ctrl_v2
 mem_samp0 : entity work.mem_samp
   PORT map(         clka => clk,
                     wea => samp_ram0_wea,
-                    addra => samp_ram_addra,
+                    addra => samp_ram0_addra,
                     dina => din,
                     clkb => clk,
-                    addrb => samp_ram_addrb,
+                    addrb => samp_ram0_addrb,
                     doutb => adc_dout0);  
 
 mem_samp1 : entity work.mem_samp
   PORT map(         clka => clk,
                     wea => samp_ram1_wea,
-                    addra => samp_ram_addra,
+                    addra => samp_ram1_addra,
                     dina => din,
                     clkb => clk,
-                    addrb => samp_ram_addrb,
+                    addrb => samp_ram1_addrb,
                     doutb => adc_dout1);    
 
 mux : entity work.mux_2to1
@@ -259,7 +268,7 @@ mux : entity work.mux_2to1
 	port map    (   clk         => clk,
                     i1          => adc_dout0,
                     i2          => adc_dout1,
-                    control     => adc_mux_ctrl,
+                    control     => samp_ram_flag,
                     o           => adc_mux_mem_data);
                     
 samp_fft1 : entity work.fft_fwd

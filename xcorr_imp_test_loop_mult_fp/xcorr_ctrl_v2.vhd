@@ -35,13 +35,16 @@ entity xcorr_ctrl_v2 is
                 busy                    : in std_logic;
                 rc                      : out std_logic;
                 -- adc memory mux
-                adc_mux_ctrl            : out std_logic;
+                samp_ram_flag           : out std_logic;
                 -- sample ram ports
+				samp_overlap_quarters	: in natural range 0 to 6144;
                 samp_ram0_wea           : out std_logic_vector(0 downto 0);
                 samp_ram1_wea           : out std_logic_vector(0 downto 0);
                 samp_ram0_addra         : out std_logic_vector(samp_ram_addr_length - 1 downto 0);
-                samp_ram1_addra         : out std_logic_vector(samp_ram_addr_length - 1 downto 0);                
-                samp_ram_addrb          : out std_logic_vector(samp_ram_addr_length - 1 downto 0);
+                samp_ram0_addrb         : out std_logic_vector(samp_ram_addr_length - 1 downto 0);				
+                samp_ram1_addra         : out std_logic_vector(samp_ram_addr_length - 1 downto 0); 
+                samp_ram1_addrb         : out std_logic_vector(samp_ram_addr_length - 1 downto 0);				
+                -- samp_ram_addrb          : out std_logic_vector(samp_ram_addr_length - 1 downto 0);
                -- mux ports for zero padding
                 mux_in1                 : in std_logic_vector(mux_data_width-1 downto 0);
                 mux_in2                 : in std_logic_vector(mux_data_width-1 downto 0);
@@ -117,19 +120,24 @@ signal n_fft : natural range 0 to 8192 := 0;
 signal state_loop : natural range 0 to 5 := 0;
 signal run_once : std_logic := '0';
 
--- adc and sample memory signals
+-- adc signals
 signal adc_busy : std_logic := '0'; -- 1= adc in middle of conversion, 0 = no conversion
 signal adc_counts : natural range 0 to 5000 := 0;
 signal adc_finished : std_logic:= '0';
 signal adc_counts_per_sample : natural range 50 to 5000 := 0;
 signal run_adc  : std_logic := '0';
-signal samp_ram0_addra_s, samp_ram1_addra_s, samp_ram_addrb_s : std_logic_vector(samp_ram_addr_length - 1 downto 0);
-signal samp_ram_max_addra, samp_ram_max_addrb : std_logic_vector(samp_ram_addr_length - 1 downto 0);
-signal samp_ram_flag : std_logic := '0'; -- switches range of values to read (allows for xcorr to be performed while data is taken in)
 signal state_adc : natural range 0 to 5;
+
+-- sample memory
+signal samp_overlap : natural range 0 to 6144 := 0;
+signal samp_addr : std_logic_vector(samp_ram_addr_length - 1 downto 0) := (others => '0');
+signal samp_ram0_addra_s, samp_ram1_addra_s, samp_ram0_addrb_s, samp_ram1_addrb_s : std_logic_vector(samp_ram_addr_length - 1 downto 0) := (others => '0');
+signal samp_ram_max_addra, samp_ram_max_addrb : std_logic_vector(samp_ram_addr_length - 1 downto 0) := (others => '0');
+signal samp_ram_flag_s : std_logic := '0'; -- switches range of values to read (allows for xcorr to be performed while data is taken in)
 
 -- uart cmd decode signals
 signal state_cmd_decode : natural range 0 to 2 := 0;
+signal send_results : std_logic := '0';
 
 -- fft config signals
 signal nfft_config : std_logic_vector(4 downto 0) := "00000";
@@ -193,27 +201,26 @@ begin
 
     samp_ram0_addra <= samp_ram0_addra_s;   
     samp_ram1_addra <= samp_ram1_addra_s;
-	samp_ram_addrb <= samp_ram_addrb_s;
-    
+	samp_ram0_addrb <= samp_ram0_addrb_s;
+ 	samp_ram1_addrb <= samp_ram1_addrb_s;   
     samp_f_ram_addra <= samp_f_ram_addra_s;
-    samp_f_ram_addrb <= samp_f_ram_addrb_s;
-    
-    fp_ram_addrb <= fp_ram_addrb_s;
-    
+    samp_f_ram_addrb <= samp_f_ram_addrb_s;   
+    fp_ram_addrb <= fp_ram_addrb_s;   
 	xcorr_ram_addra <= xcorr_ram_addra_s;
-    xcorr_ram_addrb <= xcorr_ram_addrb_s;
-    
-    threshold_check <= threshold_check_s;
-    
-    scaling_sch_s <= scaling_sch;
-    
-    n_fft_out <= n_fft;
-    
+    xcorr_ram_addrb <= xcorr_ram_addrb_s;    
+    threshold_check <= threshold_check_s;    
+    scaling_sch_s <= scaling_sch;    
+    n_fft_out <= n_fft;    
     rst_out <= rst;
 	
 	fp_match_index_s(n_fingerprints downto 0) <= fp_match_index;
 	n_detections_total <= std_logic_vector(unsigned(n_detections_total_s, 16));
 	n_detections <= std_logic_vector(unsigned(n_detections_s, 16));
+	
+	-- samp_overlap is desired amount of overlap
+	samp_overlap <= n_fft * samp_overlap_quarters / 4;
+	-- ex nfft = 512: qrtrs=3-> ovlp = 384, qrtrs=2 -> ovlp = 256, qrtrs=1 -> ovlp = 128
+	-- when ram0_addr = nfft - samp_overlap -> ram1_addr begings incrementing from 0 & saving
 
     
     -- decode uart data to get commands and configs
@@ -238,6 +245,7 @@ begin
                         end if;
                         use_adc <= rxbyte_in(5);
                         run_once <= rxbyte_in(4);
+						send_results <= rxbyte_in(0);
                         -- see FFT IP core datasheet for nfft settings
                         case rxbyte_in(3 downto 1) is
                             when "000" =>
@@ -324,7 +332,8 @@ begin
                         
     -- control looping of xcorr calculation
     -- process controls running of adc, fwd fft for sample, multiplication and ifft for xcorr, and alerts.
-    -- will loop through run_xcorr and increment fingerprint memory address for up to n_fingerprints
+    -- will loop through run_xcorr and increment fingerprint memory address for up to n_fingerprints.
+	-- if use_adc is set, then adc should constantly run and flip between brams. processing should finish before next data is ready
     loop_control : process(clk, rst)
     begin
         if rst = '1' then
@@ -373,19 +382,22 @@ begin
                 when 3 =>
                     run_xcorr <= '0';
                     if xcorr_finished = '1' then
-						-- set corresponding index's flag in fp_match_index_s if match is detected
+						-- check for threshold match & set index's flag in fp_match_index_s & increment number of detections if match is detected
 						if threshold_flag = '1' then
 							fp_match_index_s(fp_index) <= '1';
 							n_detections_total_s <= n_detections_total_s + 1;
 						end if;
-                        -- if all fingerprints have been compared, check threshold
+                        -- if all fingerprints have been compared, send results if desired
                         if fp_index = n_fingerprints then  
                             fp_run_flag <= '0';
-							-- if a match was detected and recorded in fp_match_index_s, send its index via uart
                             if fp_match_index_s /= std_logic_vector(to_unsigned(0, n_fingerprints)) then
-                                n_detections_s <= n_detections_s + 1;
-                                tx_start <= '1';
-                                state_loop <= 4;
+                                n_detections_s <= n_detections_s + 1;								
+								if send_results = '1' then
+									tx_start <= '1';
+									state_loop <= 4;
+								else
+									state_loop <= 5;
+								end if;
                             else
                                 state_loop <= 5;
                             end if;
@@ -399,6 +411,7 @@ begin
                         state_loop <= 3;
                     end if;
 				-- send results via serial
+				-- ********* create fifo of data to send out so that txing becomes non-blocking*****************************************************
                 when 4 =>
                     tx_start <= '0';
                     if tx_finished = '1' then
@@ -415,7 +428,7 @@ begin
             end case;
         end if;
     end process;
- 
+	
     -- get adc data
     -- if adc_mux_ctrl = 1 then samp_ram1 is valid, otherwise samp_ram0 is valid
     adc_proc : process(clk, rst)
