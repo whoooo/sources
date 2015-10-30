@@ -37,7 +37,7 @@ entity xcorr_ctrl_v2 is
                 -- adc memory mux
                 samp_ram_flag           : out std_logic;
                 -- sample ram ports
-				samp_overlap_quarters	: in natural range 0 to 6144;
+				samp_overlap_quarters	: in natural range 0 to 3;
                 samp_ram0_wea           : out std_logic_vector(0 downto 0);
                 samp_ram1_wea           : out std_logic_vector(0 downto 0);
                 samp_ram0_addra         : out std_logic_vector(samp_ram_addr_length - 1 downto 0);
@@ -100,9 +100,9 @@ entity xcorr_ctrl_v2 is
                 -- uart tx signals
                 tx_start                : out std_logic;
                 tx_finished             : in std_logic;
-                n_fft_out               : out natural range 0 to 8192;
+                n_fft_out               : out natural range 0 to 8192
                
-                led                     : out std_logic
+                -- led                     : out std_logic
 
 		);         
 end xcorr_ctrl_v2;
@@ -125,6 +125,7 @@ signal adc_busy : std_logic := '0'; -- 1= adc in middle of conversion, 0 = no co
 signal adc_counts : natural range 0 to 5000 := 0;
 signal adc_finished : std_logic:= '0';
 signal adc_counts_per_sample : natural range 50 to 5000 := 0;
+signal rc_counts : natural range 0 to 5 := 0;
 signal run_adc  : std_logic := '0';
 signal state_adc : natural range 0 to 5;
 
@@ -172,12 +173,12 @@ signal state_thresh : natural range 0 to 5 := 0;
 
 -- fingerprint signals
 signal fp_index : natural range 0 to 30 := 0; -- index of current fingerprint
-signal fp_match_index_s : std_logic_vector(n_fingerprints downto 0) := (others => '0'); -- stores indices of matches to send to matlab
+signal fp_match_index_s, fp_match_index_zeros : std_logic_vector(n_fingerprints downto 0) := (others => '0'); -- stores indices of matches to send to matlab
 signal fp_run_flag : std_logic := '0'; -- flag to allow run_xcorr in loop_control process to run multiple times
 
 -- led signals
-signal n_detections_s : natural range 0 to 300 := 0; -- cycles with events detected (ex 3 events in one cycle, 5 events in next, 0 in following, result = 2)
-signal n_detections_total_s : natural range 0 to 1000 := 0; -- total events (ex 3 events in one cycle, 5 events in next, result = 8)
+signal n_detections_s : natural range 0 to 65535 := 0; -- cycles with events detected (ex 3 events in one cycle, 5 events in next, 0 in following, result = 2)
+signal n_detections_total_s : natural range 0 to 65535 := 0; -- total events (ex 3 events in one cycle, 5 events in next, result = 8)
 
 attribute keep : string;
 attribute keep of run							    : signal is "true";
@@ -188,9 +189,18 @@ attribute keep of state_fwd_fft						: signal is "true";
 attribute keep of state_loop				    	: signal is "true";
 attribute keep of state_xcorr                       : signal is "true";
 attribute keep of fwd_fft_finished                  : signal is "true";
+attribute keep of run_fwd_fft                       : signal is "true";
 attribute keep of xcorr_finished                    : signal is "true";
 attribute keep of run_xcorr                         : signal is "true";
-attribute keep of fp_index                          : signal is "true";
+attribute keep of adc_counts                        : signal is "true";
+attribute keep of rc_counts                         : signal is "true";
+attribute keep of samp_ram0_addra_s                 : signal is "true";
+attribute keep of samp_ram1_addra_s                 : signal is "true";
+attribute keep of samp_ram_flag_s                   : signal is "true";
+attribute keep of adc_finished                      : signal is "true";
+attribute keep of run_adc                           : signal is "true";
+
+
 
 
 
@@ -198,11 +208,14 @@ attribute keep of fp_index                          : signal is "true";
 begin
 
     adc_counts_per_sample <= (clk_rate * 1000) / adc_samp_rate; -- use to set sampling rate of adc from 20 to 100 kHz
+    
+    fp_match_index_zeros <= (others => '0');
 
     samp_ram0_addra <= samp_ram0_addra_s;   
     samp_ram1_addra <= samp_ram1_addra_s;
 	samp_ram0_addrb <= samp_ram0_addrb_s;
- 	samp_ram1_addrb <= samp_ram1_addrb_s;   
+ 	samp_ram1_addrb <= samp_ram1_addrb_s; 
+    samp_ram_flag <= samp_ram_flag_s;
     samp_f_ram_addra <= samp_f_ram_addra_s;
     samp_f_ram_addrb <= samp_f_ram_addrb_s;   
     fp_ram_addrb <= fp_ram_addrb_s;   
@@ -213,14 +226,14 @@ begin
     n_fft_out <= n_fft;    
     rst_out <= rst;
 	
-	fp_match_index_s(n_fingerprints downto 0) <= fp_match_index;
-	n_detections_total <= std_logic_vector(unsigned(n_detections_total_s, 16));
-	n_detections <= std_logic_vector(unsigned(n_detections_s, 16));
+	fp_match_index(n_fingerprints downto 0) <= fp_match_index_s;
+	n_detections_total <= std_logic_vector(to_unsigned(n_detections_total_s, 16));
+	n_detections <= std_logic_vector(to_unsigned(n_detections_s, 16));
 	
 	-- samp_overlap is desired amount of overlap
 	samp_overlap <= n_fft * samp_overlap_quarters / 4;
 	-- ex nfft = 512: qrtrs=3-> ovlp = 384, qrtrs=2 -> ovlp = 256, qrtrs=1 -> ovlp = 128
-	-- when ram0_addr = nfft - samp_overlap -> ram1_addr begings incrementing from 0 & saving
+	-- when ram0_addr = nfft - samp_overlap -> ram1_addr begins incrementing from 0 & saving
 
     
     -- decode uart data to get commands and configs
@@ -346,7 +359,7 @@ begin
 				-- wait for run cmd
                 when 0 =>
                     -- run_adc <= '0';
-                    led <= '0';
+                    -- led <= '0';
                     fp_index <= 0;
 					fp_match_index_s <= (others => '0');
                     if run = '1' then
@@ -390,7 +403,7 @@ begin
                         -- if all fingerprints have been compared, send results if desired
                         if fp_index = n_fingerprints then  
                             fp_run_flag <= '0';
-                            if fp_match_index_s /= std_logic_vector(to_unsigned(0, n_fingerprints)) then
+                            if fp_match_index_s /= fp_match_index_zeros then
                                 n_detections_s <= n_detections_s + 1;								
 								if send_results = '1' then
 									tx_start <= '1';
@@ -422,6 +435,7 @@ begin
                 when 5 =>
                     if run_once = '1' then
                         state_loop <= 5;
+                        run_adc <= '0';
                     else
                         state_loop <= 0;
                     end if;                       
@@ -430,73 +444,128 @@ begin
     end process;
 	
     -- get adc data
-    -- if adc_mux_ctrl = 1 then samp_ram1 is valid, otherwise samp_ram0 is valid
+    -- data will be saved as long as run_adc = '1'
+    -- if run_adc goes low during transfer, the memory currently being written to will be filled before the process stops
+    -- if samp_ram_flag = 1 then samp_ram1 is being written to, otherwise samp_ram0 is 
     adc_proc : process(clk, rst)
     begin
 		if rst = '1' then
 			state_adc <= 0;
 		elsif rising_edge(clk) then
-			-- wait for run command
+			-- wait for run_adc command
 			if state_adc = 0 then 
                 adc_counts <= 0;
  				adc_finished <= '0';
- 				rc <= '1';             
-                samp_ram_addra_s <= (others => '0');
-				samp_ram_wea <= "0";
+ 				rc <= '1'; 
+                rc_counts <= 0;
+                samp_ram0_addra_s <= (others => '0');
+                samp_ram1_addra_s <= (others => '0');
+                samp_ram_max_addra <= std_logic_vector(to_unsigned(n_samples - 1, samp_ram_addr_length));
+				samp_ram0_wea <= "0";   
+                samp_ram1_wea <= "0";
+                samp_ram_flag_s <= '0'; -- signals that ram0/ram1 is busy
 				if run_adc = '1' then
-                    state_adc <= 1;
-                    if run_once = '1' then
-                        samp_ram_addra_s <= (others => '0');
-						samp_ram_max_addra <= std_logic_vector(to_unsigned(n_samples - 1, samp_ram_addr_length));
-                    -- save data at 0 to n_samples if samp_ram_flag = 0, otherwise save data in upper half of mem
-					elsif samp_ram_flag = '0' then 
-                        samp_ram_addra_s <= (others => '0');
-						samp_ram_max_addra <= std_logic_vector(to_unsigned(n_samples - 1, samp_ram_addr_length));
-                    else
-                        samp_ram_addra_s <= std_logic_vector(to_unsigned(n_samples, samp_ram_addr_length));
-                        samp_ram_max_addra <= std_logic_vector(to_unsigned(2*n_samples - 1, samp_ram_addr_length));
-					end if;
+                    state_adc <= 1;                   
+                    rc <= '0'; -- drop rc low to begin converting
 				else
 					state_adc <= 0;
-				end if;															
-			-- drop rc low to begin converting
-			elsif state_adc = 1 then
-				rc <= '0';
-				state_adc <= 2;
+				end if;
+            elsif state_adc = 1 then
+                adc_finished <= '0'; 
+                -- rc needs to be held low for >= 50ns
+                if rc_counts = 4 then
+                    rc <= '1';
+                    state_adc <= 2;
+                else
+                    rc_counts <= rc_counts + 1;
+                    state_adc <= 1;
+                end if;
 			-- wait to ensure that sampling period is maintained
 			elsif state_adc = 2 then
-				rc <= '1';
-				-- 4 cycle delay due to state changes
-				if adc_counts = (adc_counts_per_sample - 4) then
+				rc_counts <= 0;
+				-- 7 cycle delay due to state changes?
+				if adc_counts = (adc_counts_per_sample - 7) then
 					state_adc <= 3;
 				else 
 					adc_counts <= adc_counts + 1;
 					state_adc <= 2;
 				end if;
-			-- check to make sure adc is finished converting data
+			-- check to make sure adc is finished converting data, then save
+            -- when ram0_addr = nfft - samp_overlap -> ram1_addr begins incrementing from 0 & saving
 			elsif state_adc = 3 then
-				if busy = '1' then
-					samp_ram_wea <= "1";
+                adc_counts <= 0;
+				if busy = '1' then -- data is valid
+                    if samp_ram_flag_s = '0' then
+                        samp_ram0_wea <= "1";
+                        -- if samp_ram0_addra = nfft - samp_overlap - 1, start saving data to samp_ram1
+                        if samp_ram0_addra_s >= std_logic_vector(to_unsigned(n_fft - samp_overlap - 1, samp_ram_addr_length)) then
+                            samp_ram1_wea <= "1";
+                        else
+                            samp_ram1_wea <= "0";
+                        end if;
+                    else
+                        -- when samp_ram_flag = 1
+                        samp_ram1_wea <= "1";
+                         -- if samp_ram1_addra = nfft - samp_overlap - 1, start saving data to samp_ram0
+                        if samp_ram1_addra_s >= std_logic_vector(to_unsigned(n_fft - samp_overlap - 1, samp_ram_addr_length)) then
+                            samp_ram0_wea <= "1";
+                        else
+                            samp_ram0_wea <= "0";
+                        end if;  
+                    end if;
 					state_adc <= 4;
 				elsif busy = '0' then
 					state_adc <= 3;
 				end if;			
 			-- check to see if desired number of samples has been reached
+            -- *** check for run_once ****
 			elsif state_adc = 4 then
-				samp_ram_wea <= "0";
-				if samp_ram_addra_s = samp_ram_max_addra then
-					adc_finished <= '1';
-					state_adc <= 5;
-				else
-					adc_counts <= 0;
-					samp_ram_addra_s <= std_logic_vector(unsigned(samp_ram_addra_s) + 1);
-					state_adc <= 1;
-				end if;
+				samp_ram0_wea <= "0";
+                samp_ram1_wea <= "0";
+                if samp_ram_flag_s = '0' then                
+                    if (samp_ram0_addra_s = samp_ram_max_addra) then 
+                        adc_finished <= '1';
+                        samp_ram_flag <= '1';
+                        samp_ram0_addra_s <= (others => '0');
+                        samp_ram1_addra_s <= std_logic_vector(unsigned(samp_ram1_addra_s) + 1);
+                        if run_adc = '1' then
+                            state_adc <= 1;
+                            rc <= '0';
+                        else
+                            state_adc <= 5;
+                        end if;
+                    else
+                        samp_ram0_addra_s <= std_logic_vector(unsigned(samp_ram0_addra_s) + 1);
+                        state_adc <= 1;
+                        rc <= '0';
+                        if samp_ram0_addra_s >= std_logic_vector(to_unsigned(n_fft - samp_overlap - 1, samp_ram_addr_length)) then
+                            samp_ram1_addra_s <= std_logic_vector(unsigned(samp_ram1_addra_s) + 1);
+                        end if;
+                    end if;
+                else
+                    -- if samp_ram_flag_s = '1'
+                    if (samp_ram1_addra_s = samp_ram_max_addra) then 
+                        adc_finished <= '1';
+                        samp_ram_flag <= '0';
+                        samp_ram1_addra_s <= (others => '0');
+                        samp_ram0_addra_s <= std_logic_vector(unsigned(samp_ram0_addra_s) + 1);
+                        if run_adc = '1' then
+                            state_adc <= 1;
+                            rc <= '0';
+                        else
+                            state_adc <= 5;
+                        end if;
+                    else
+                        samp_ram1_addra_s <= std_logic_vector(unsigned(samp_ram1_addra_s) + 1);
+                        state_adc <= 1;
+                        rc <= '0';
+                        if samp_ram1_addra_s >= std_logic_vector(to_unsigned(n_fft - samp_overlap - 1, samp_ram_addr_length)) then
+                            samp_ram0_addra_s <= std_logic_vector(unsigned(samp_ram0_addra_s) + 1);
+                        end if;
+                    end if;    
+                end if;
             elsif state_adc = 5 then
---                samp_ram_flag <= samp_ram_flag + '1';
-				samp_ram_flag <= not samp_ram_flag;
                 adc_finished <= '0';
-                state_adc <= 0;
 			end if;
 		end if;
      end process;     		
@@ -533,22 +602,17 @@ begin
                 pad_length <= n_fft - n_samples;
                 s_axis_data_tvalid_f <= '0';
 				s_axis_data_tlast_f <= '0';
-                samp_ram_addrb_s <= (others => '0');
-                samp_ram_max_addrb <= (others => '0');
+                samp_ram_max_addrb <= std_logic_vector(to_unsigned(n_samples - 1, samp_ram_addr_length));
                 samp_f_ram_addra_s <= (others => '0');
                 samp_f_ram_wea <= "0";
 				zp <= '0';
 				if run_fwd_fft = '1' then              				           
 					state_fwd_fft <= 1;
-                    -- if run_once = '1' then   
-                    if use_adc = '0' then
-                        samp_ram_max_addrb <= std_logic_vector(to_unsigned(n_samples - 1, samp_ram_addr_length));
- 					elsif samp_ram_flag = '0' then 
-                        samp_ram_addrb_s <= std_logic_vector(to_unsigned(n_samples, samp_ram_addr_length));
-                        samp_ram_max_addrb <= std_logic_vector(to_unsigned(2*n_samples - 1, samp_ram_addr_length));
+                    -- use samp_ram that's not currently being written to   
+ 					if samp_ram_flag_s = '1' then 
+                        samp_ram0_addrb_s <= (others => '0');
                     else
-                        samp_ram_addrb_s <= (others => '0');
-						samp_ram_max_addrb <= std_logic_vector(to_unsigned(n_samples - 1, samp_ram_addr_length));
+                        samp_ram1_addrb_s <= (others => '0');
                     end if;
 				else
 					state_fwd_fft <= 0;
@@ -564,13 +628,28 @@ begin
             -- start sending sample data from memory
 			elsif state_fwd_fft= 2 then
                 if s_axis_data_tready_f = '1' then
-                    -- increment address up to nfft/2 or n_samples before zero padding
-                    samp_ram_addrb_s <= std_logic_vector(unsigned(samp_ram_addrb_s) + 1);
-                    if samp_ram_addrb_s = samp_ram_max_addrb then
-                        zp <= '1';
-                        state_fwd_fft <= 3;
+                
+                    -- increment address (which is not being writtent to from adc) up to (nfft/2 or n_samples) before zero padding
+                    if samp_ram_flag_s = '1' then
+                        samp_ram0_addrb_s <= std_logic_vector(unsigned(samp_ram0_addrb_s) + 1);
                     else
-                        state_fwd_fft <= 2;
+                        samp_ram1_addrb_s <= std_logic_vector(unsigned(samp_ram1_addrb_s) + 1);
+                    end if;
+                    -- zero pad when max address reached
+                    if samp_ram_flag_s = '1' then
+                        if samp_ram0_addrb_s = samp_ram_max_addrb then
+                            zp <= '1';
+                            state_fwd_fft <= 3;
+                        else
+                            state_fwd_fft <= 2;
+                        end if;
+                    else
+                        if samp_ram1_addrb_s = samp_ram_max_addrb then
+                            zp <= '1';
+                            state_fwd_fft <= 3;
+                        else
+                            state_fwd_fft <= 2;
+                        end if;
                     end if;
                 else
                     state_fwd_fft <= 2;

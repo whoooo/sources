@@ -9,11 +9,12 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity top_v2 is
     port(   clk         : in std_logic;
-            din     : in std_logic_vector(15 downto 0);
+            din         : in std_logic_vector(15 downto 0);
             busy        : in std_logic;
             uart_in     : in std_logic;
+            sw          : in std_logic_vector(1 downto 0);
             uart_out	: out std_logic;
-            led         : out std_logic;
+            led         : out std_logic_vector(15 downto 0);
 			rc 			: out std_logic);  
 end top_v2;
 
@@ -22,12 +23,13 @@ architecture behavioral of top_v2 is
 constant fp_ram_addr_length_c      : natural := 14;
 constant samp_ram_addr_length_c    : natural := 13;
 constant samp_f_ram_addr_length_c  : natural := 13;
-constant adc_samp_rate_c           : natural := 40;
+constant adc_samp_rate_c           : natural := 48;
 constant mux_data_width_c          : natural := 16;
 
 -- vio signals
 signal scaling_sch : std_logic_vector(13 downto 0) := "10101010101011";
 signal threshold : std_logic_vector(31 downto 0) := x"00004000";
+
 -- reset signals
 signal fft_rst : std_logic := '1';
 signal rst : std_logic := '0';
@@ -43,12 +45,13 @@ signal samp_ram_flag : std_logic := '0';
 -- sample memory (adc in)
 signal samp_overlap_quarters : natural range 0 to 3 := 1;
 signal samp_ram0_wea, samp_ram1_wea : std_logic_vector(0 downto 0) := "0";
-signal samp_ram0_addra, samp_ram1_addra, samp_ram_addrb : std_logic_vector(samp_ram_addr_length_c - 1 downto 0) := (others => '0'); 
+signal samp_ram0_addra, samp_ram1_addra, samp_ram0_addrb, samp_ram1_addrb : std_logic_vector(samp_ram_addr_length_c - 1 downto 0) := (others => '0'); 
 
 -- sample memory f 
 signal samp_f_ram_wea : std_logic_vector(0 downto 0) := "0";
 signal samp_f_ram_addra, samp_f_ram_addrb : std_logic_vector(samp_ram_addr_length_c - 1 downto 0) := (others => '0'); 
 signal adc_data_f : std_logic_vector(31 downto 0) := (others => '0');
+signal adc_mux_mem_data : std_logic_vector(mux_data_width_c - 1 downto 0) := (others => '0');
 
 -- fingerprint memory
 signal fingerprint : std_logic_vector(31 downto 0) := (others => '0');
@@ -107,15 +110,25 @@ signal event_data_out_channel_halt_r : std_logic := '0';
 
 signal xcorr, xcorr_out : std_logic_vector(63 downto 0) := (others => '0');
 
+-- results
+signal n_detections, n_detections_total : std_logic_vector(15 downto 0) := (others => '0');
+signal fp_match_index : std_logic_vector(31 downto 0) := (others => '0');
+
 
 attribute keep : string;
 attribute keep of led_s								: signal is "true";
 attribute keep of fft_rst					    	: signal is "true";
 attribute keep of rst								: signal is "true";
-attribute keep of samp_ram_wea				    	: signal is "true";
+attribute keep of samp_ram0_wea				    	: signal is "true";
+attribute keep of samp_ram1_wea				    	: signal is "true";
 --attribute keep of run								: signal is "true";
-attribute keep of samp_ram_addra					: signal is "true";
-attribute keep of samp_ram_addrb					: signal is "true";
+attribute keep of n_detections					    : signal is "true";
+attribute keep of n_detections_total			    : signal is "true";
+attribute keep of fp_match_index					: signal is "true";
+attribute keep of samp_ram0_addra					: signal is "true";
+attribute keep of samp_ram1_addra					: signal is "true";
+attribute keep of samp_ram0_addrb					: signal is "true";
+attribute keep of samp_ram1_addrb					: signal is "true";
 attribute keep of samp_f_ram_wea				   	: signal is "true";
 attribute keep of samp_f_ram_addra					: signal is "true";
 attribute keep of samp_f_ram_addrb					: signal is "true";
@@ -150,10 +163,21 @@ attribute keep of event_data_out_channel_halt_f		: signal is "true";
 
 begin
 
--- led <= led_s;
-
--- ***** use switch to control what's shown on led. latch fp_match_index?
-led(15 downto 0) <= n_detections;
+-- use switch to control what's shown on led and amount of overlap (1/2-1/4)
+process(sw)
+begin
+    if sw(0) = '1' then
+        led(15 downto 0) <= n_detections_total;
+    else
+        led(15 downto 0) <= n_detections;
+    end if;
+    
+    if sw(1) = '1' then
+        samp_overlap_quarters <= 2;
+    else
+        samp_overlap_quarters <= 1;
+    end if;
+end process;
 
 -- *** set overlap with switch
 
@@ -161,7 +185,6 @@ vio : entity work.vio_0
     PORT MAP (      clk => clk,
                     probe_out0 => scaling_sch,
                     probe_out1 => threshold);
-						-- ********************** add samp_overlap_quarters
 
 uartRX : entity work.uart_rx
 	generic map(    clk_counts_per_bit  => 868)
@@ -185,14 +208,14 @@ control : entity work.xcorr_ctrl_v2
                     n_fft_out               => n_fft,
                     fft_rst	                => fft_rst,
                     rst_out                 => rst,
-                    led		                => led_s,
+                    -- led		                => led_s,
                     -- adc ports
                     busy                    => busy,
                     rc                      => rc,
                     -- adc memory mux
                     samp_ram_flag           => samp_ram_flag,
                     -- sample ram ports
-					samp_overlap			=> samp_overlap_quarters,
+					samp_overlap_quarters	=> samp_overlap_quarters,
                     samp_ram0_wea           => samp_ram0_wea,
                     samp_ram1_wea           => samp_ram1_wea,
                     samp_ram0_addra         => samp_ram0_addra,
@@ -237,7 +260,11 @@ control : entity work.xcorr_ctrl_v2
                     xcorr_ram_addrb         => xcorr_ram_addrb,
                     -- threshold signals
                     threshold_check         => threshold_check,
-                    threshold_detected      => threshold_detected,       
+                    threshold_detected      => threshold_detected, 
+                    -- data to send over uart
+                    n_detections            => n_detections,
+                    n_detections_total      => n_detections_total,
+                    fp_match_index          => fp_match_index,
                     -- uart rx signals
                     rxbyte_ready            => rxbyte_ready,
                     rxbyte_in               => rxbyte,
