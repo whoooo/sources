@@ -231,7 +231,7 @@ begin
 	n_detections <= std_logic_vector(to_unsigned(n_detections_s, 16));
 	
 	-- samp_overlap is desired amount of overlap
-	samp_overlap <= n_fft * samp_overlap_quarters / 4;
+	samp_overlap <= n_samples * samp_overlap_quarters / 4;
 	-- ex nfft = 512: qrtrs=3-> ovlp = 384, qrtrs=2 -> ovlp = 256, qrtrs=1 -> ovlp = 128
 	-- when ram0_addr = nfft - samp_overlap -> ram1_addr begins incrementing from 0 & saving
 
@@ -498,7 +498,7 @@ begin
                     if samp_ram_flag_s = '0' then
                         samp_ram0_wea <= "1";
                         -- if samp_ram0_addra = nfft - samp_overlap - 1, start saving data to samp_ram1
-                        if samp_ram0_addra_s >= std_logic_vector(to_unsigned(n_fft - samp_overlap - 1, samp_ram_addr_length)) then
+                        if samp_ram0_addra_s >= std_logic_vector(to_unsigned(n_samples - samp_overlap - 1, samp_ram_addr_length)) then
                             samp_ram1_wea <= "1";
                         else
                             samp_ram1_wea <= "0";
@@ -507,7 +507,7 @@ begin
                         -- when samp_ram_flag = 1
                         samp_ram1_wea <= "1";
                          -- if samp_ram1_addra = nfft - samp_overlap - 1, start saving data to samp_ram0
-                        if samp_ram1_addra_s >= std_logic_vector(to_unsigned(n_fft - samp_overlap - 1, samp_ram_addr_length)) then
+                        if samp_ram1_addra_s >= std_logic_vector(to_unsigned(n_samples - samp_overlap - 1, samp_ram_addr_length)) then
                             samp_ram0_wea <= "1";
                         else
                             samp_ram0_wea <= "0";
@@ -538,7 +538,7 @@ begin
                         samp_ram0_addra_s <= std_logic_vector(unsigned(samp_ram0_addra_s) + 1);
                         state_adc <= 1;
                         rc <= '0';
-                        if samp_ram0_addra_s >= std_logic_vector(to_unsigned(n_fft - samp_overlap - 1, samp_ram_addr_length)) then
+                        if samp_ram0_addra_s >= std_logic_vector(to_unsigned(n_samples - samp_overlap - 1, samp_ram_addr_length)) then
                             samp_ram1_addra_s <= std_logic_vector(unsigned(samp_ram1_addra_s) + 1);
                         end if;
                     end if;
@@ -559,7 +559,7 @@ begin
                         samp_ram1_addra_s <= std_logic_vector(unsigned(samp_ram1_addra_s) + 1);
                         state_adc <= 1;
                         rc <= '0';
-                        if samp_ram1_addra_s >= std_logic_vector(to_unsigned(n_fft - samp_overlap - 1, samp_ram_addr_length)) then
+                        if samp_ram1_addra_s >= std_logic_vector(to_unsigned(n_samples - samp_overlap - 1, samp_ram_addr_length)) then
                             samp_ram0_addra_s <= std_logic_vector(unsigned(samp_ram0_addra_s) + 1);
                         end if;
                     end if;    
