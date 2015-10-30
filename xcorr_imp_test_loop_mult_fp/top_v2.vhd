@@ -295,7 +295,7 @@ mux : entity work.mux_2to1
 	port map    (   clk         => clk,
                     i1          => adc_dout0,
                     i2          => adc_dout1,
-                    control     => samp_ram_flag,
+                    control     => not samp_ram_flag,
                     o           => adc_mux_mem_data);
                     
 samp_fft1 : entity work.fft_fwd

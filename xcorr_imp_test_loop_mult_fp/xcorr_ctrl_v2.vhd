@@ -483,8 +483,8 @@ begin
 			-- wait to ensure that sampling period is maintained
 			elsif state_adc = 2 then
 				rc_counts <= 0;
-				-- 7 cycle delay due to state changes?
-				if adc_counts = (adc_counts_per_sample - 7) then
+				-- 6 cycle delay due to state changes?
+				if adc_counts = (adc_counts_per_sample - 6) then
 					state_adc <= 3;
 				else 
 					adc_counts <= adc_counts + 1;
@@ -525,7 +525,7 @@ begin
                 if samp_ram_flag_s = '0' then                
                     if (samp_ram0_addra_s = samp_ram_max_addra) then 
                         adc_finished <= '1';
-                        samp_ram_flag <= '1';
+                        samp_ram_flag_s <= '1';
                         samp_ram0_addra_s <= (others => '0');
                         samp_ram1_addra_s <= std_logic_vector(unsigned(samp_ram1_addra_s) + 1);
                         if run_adc = '1' then
@@ -546,7 +546,7 @@ begin
                     -- if samp_ram_flag_s = '1'
                     if (samp_ram1_addra_s = samp_ram_max_addra) then 
                         adc_finished <= '1';
-                        samp_ram_flag <= '0';
+                        samp_ram_flag_s <= '0';
                         samp_ram1_addra_s <= (others => '0');
                         samp_ram0_addra_s <= std_logic_vector(unsigned(samp_ram0_addra_s) + 1);
                         if run_adc = '1' then
