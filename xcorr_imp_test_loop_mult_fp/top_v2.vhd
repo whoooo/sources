@@ -12,7 +12,7 @@ entity top_v2 is
             din         : in std_logic_vector(15 downto 0);
             busy        : in std_logic;
             uart_in     : in std_logic;
-            sw          : in std_logic_vector(1 downto 0);
+            sw          : in std_logic_vector(15 downto 0);
             uart_out	: out std_logic;
             led         : out std_logic_vector(15 downto 0);
 			rc 			: out std_logic);  
@@ -114,6 +114,8 @@ signal xcorr, xcorr_out : std_logic_vector(63 downto 0) := (others => '0');
 signal n_detections, n_detections_total : std_logic_vector(15 downto 0) := (others => '0');
 signal fp_match_index : std_logic_vector(31 downto 0) := (others => '0');
 
+signal scaling_sw : std_logic_vector(5 downto 0) := (others => '0');
+
 
 attribute keep : string;
 attribute keep of led_s								: signal is "true";
@@ -163,9 +165,12 @@ attribute keep of event_data_out_channel_halt_f		: signal is "true";
 
 begin
 
+scaling_sch <= "10101010101011";
+
 -- use switch to control what's shown on led and amount of overlap (1/2-1/4)
 process(sw)
 begin
+
     if sw(0) = '1' then
         led(15 downto 0) <= n_detections_total;
     else
@@ -177,14 +182,36 @@ begin
     else
         samp_overlap_quarters <= 1;
     end if;
+    
+    case sw(15 downto 10) is
+        when "00000" => threshold <= std_logic_vector(to_unsigned(10000, 32));
+        when "00001" => threshold <= std_logic_vector(to_unsigned(12000, 32));
+        when "00010" => threshold <= std_logic_vector(to_unsigned(14000, 32));
+        when "00011" => threshold <= std_logic_vector(to_unsigned(16000, 32));
+        when "00100" => threshold <= std_logic_vector(to_unsigned(18000, 32));
+        when "00101" => threshold <= std_logic_vector(to_unsigned(20000, 32));
+        when "00110" => threshold <= std_logic_vector(to_unsigned(22000, 32));
+        when "00111" => threshold <= std_logic_vector(to_unsigned(24000, 32));
+        when "01000" => threshold <= std_logic_vector(to_unsigned(26000, 32));
+        when "01001" => threshold <= std_logic_vector(to_unsigned(28000, 32));
+        when "01010" => threshold <= std_logic_vector(to_unsigned(30000, 32));
+        when "01011" => threshold <= std_logic_vector(to_unsigned(32000, 32));
+        when "01100" => threshold <= std_logic_vector(to_unsigned(34000, 32));
+        when "01101" => threshold <= std_logic_vector(to_unsigned(36000, 32));
+        when "01110" => threshold <= std_logic_vector(to_unsigned(38000, 32));
+        when "01111" => threshold <= std_logic_vector(to_unsigned(40000, 32));
+        when others => threshold <= std_logic_vector(to_unsigned(22000, 32));
+    end case;
+
+    
 end process;
 
 -- *** set overlap with switch
 
-vio : entity work.vio_0
-    PORT MAP (      clk => clk,
-                    probe_out0 => scaling_sch,
-                    probe_out1 => threshold);
+-- vio : entity work.vio_0
+    -- PORT MAP (      clk => clk,
+                    -- probe_out0 => scaling_sch,
+                    -- probe_out1 => open);
 
 uartRX : entity work.uart_rx
 	generic map(    clk_counts_per_bit  => 868)
@@ -416,9 +443,9 @@ uartTX1 : entity work.uart_tx_generic
         generic map(clock_counts_per_bit => 868,
                     n_bytes => 8)
         port map(	data_in => n_detections & n_detections_total & fp_match_index,		
-                    byte_in_flag => tx_ready, 			
+                    byte_in_flag => uart_tx_start, 			
                     clk => clk,					
-                    txfinished => tx_finished,			
+                    txfinished => uart_tx_done,			
                     txdata_out => uart_out);                    
                     
 end behavioral;
