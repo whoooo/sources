@@ -87,6 +87,7 @@ entity xcorr_ctrl_v2 is
                 threshold_detected      : in std_logic;
                                
 				fft_rst			        : out std_logic;
+                run_out                 : out std_logic;
                 rst_out                 : out std_logic;
 				
 				-- data to send over uart
@@ -206,6 +207,9 @@ attribute keep of run_adc                           : signal is "true";
 
 
 begin
+
+    run_out <= run;
+    rst_out <= rst;
 
     adc_counts_per_sample <= (clk_rate * 1000) / adc_samp_rate; -- use to set sampling rate of adc from 20 to 100 kHz
     

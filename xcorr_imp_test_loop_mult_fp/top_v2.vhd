@@ -39,6 +39,8 @@ signal tx_ready, rxbyte_ready, tx_finished : std_logic := '0';
 signal uart_tx_start, uart_tx_done : std_logic := '0';
 signal rxbyte : std_logic_vector(7 downto 0) := x"00"; 
 
+signal state_fuckit : natural range 0 to 3 := 0;
+
 -- adc memory muxing
 signal samp_ram_flag : std_logic := '0';
 
@@ -116,6 +118,8 @@ signal fp_match_index : std_logic_vector(31 downto 0) := (others => '0');
 
 signal scaling_sw : std_logic_vector(5 downto 0) := (others => '0');
 
+signal run_out : std_logic := '0';
+
 
 attribute keep : string;
 attribute keep of led_s								: signal is "true";
@@ -165,16 +169,23 @@ attribute keep of event_data_out_channel_halt_f		: signal is "true";
 
 begin
 
+
+
 scaling_sch <= "10101010101011";
+-- led(15) <= run_out;
+-- led(14) <= rst;
+
 
 -- use switch to control what's shown on led and amount of overlap (1/2-1/4)
 process(sw)
 begin
 
     if sw(0) = '1' then
-        led(15 downto 0) <= n_detections_total;
+        -- led(12 downto 0) <= n_detections_total(12 downto 0);
+        led <= n_detections_total;
     else
-        led(15 downto 0) <= n_detections;
+        -- led(12 downto 0) <= n_detections(12 downto 0);
+        led <= n_detections;
     end if;
     
     if sw(1) = '1' then
@@ -206,6 +217,45 @@ begin
     
 end process;
 
+-- process(clk)
+-- begin
+    -- if rising_edge(clk) then
+        -- if sw(4) = '1' then
+            -- if (sw(3) = '1') and (sw(2) = '0') then
+                -- if state_fuckit = 0 then
+                    -- rxbyte <= "10100110";
+                    -- rxbyte_ready <= '1';
+                    -- state_fuckit <= 1;
+                -- elsif state_fuckit = 1 then
+                    -- rxbyte_ready <= '0';
+                -- end if;
+            -- elsif (sw(3) = '0') and (sw(2) = '0') then
+                -- if state_fuckit = 0 then
+                    -- rxbyte <= "00100110";
+                    -- rxbyte_ready <= '1';
+                    -- state_fuckit <= 1;
+                -- elsif state_fuckit = 1 then
+                    -- rxbyte_ready <= '0';
+                -- end if;
+            -- elsif (sw(3) = '0') and (sw(2) = '1') then
+               -- if state_fuckit = 0 then
+                    -- rxbyte <= "01100110";
+                    -- rxbyte_ready <= '1';
+                    -- state_fuckit <= 1;
+                -- elsif state_fuckit = 1 then
+                    -- rxbyte_ready <= '0';
+                -- end if; 
+            -- end if;
+        -- else
+            -- state_fuckit <= 0;
+        -- end if;
+    -- end if;
+-- end process;
+            
+                
+            
+
+
 -- *** set overlap with switch
 
 -- vio : entity work.vio_0
@@ -227,7 +277,7 @@ control : entity work.xcorr_ctrl_v2
                     samp_f_ram_addr_length  => samp_f_ram_addr_length_c,
                     adc_samp_rate           => adc_samp_rate_c,
                     mux_data_width          => mux_data_width_c,
-                    n_fingerprints			=> 3) -- actual number -1
+                    n_fingerprints			=> 0) -- actual number -1
 	Port map(       
                     clk 			        => clk,
                     scaling_sch 	        => scaling_sch,
@@ -235,6 +285,7 @@ control : entity work.xcorr_ctrl_v2
                     n_fft_out               => n_fft,
                     fft_rst	                => fft_rst,
                     rst_out                 => rst,
+                    run_out                 => run_out,
                     -- led		                => led_s,
                     -- adc ports
                     busy                    => busy,
