@@ -200,12 +200,17 @@ attribute keep of samp_ram1_addra_s                 : signal is "true";
 attribute keep of samp_ram_flag_s                   : signal is "true";
 attribute keep of adc_finished                      : signal is "true";
 attribute keep of run_adc                           : signal is "true";
+attribute keep of fp_index                          : signal is "true";
+attribute keep of n_detections_s                    : signal is "true";
+attribute keep of n_detections_total_s              : signal is "true";
 
 
 
 
 
 
+
+ 
 begin
 
     run_out <= run;
@@ -404,20 +409,21 @@ begin
 							fp_match_index_s(fp_index) <= '1';
 							n_detections_total_s <= n_detections_total_s + 1;
 						end if;
-                        -- if all fingerprints have been compared, send results if desired
+                        -- if all fingerprints have been compared, go to next state
                         if fp_index = n_fingerprints then  
                             fp_run_flag <= '0';
-                            if fp_match_index_s /= fp_match_index_zeros then
-                                n_detections_s <= n_detections_s + 1;								
-								if send_results = '1' then
-									tx_start <= '1';
-									state_loop <= 4;
-								else
-									state_loop <= 5;
-								end if;
-                            else
-                                state_loop <= 5;
-                            end if;
+                            state_loop <= 4;
+                            -- if fp_match_index_s /= fp_match_index_zeros then
+                                -- n_detections_s <= n_detections_s + 1;								
+								-- if send_results = '1' then
+									-- tx_start <= '1';
+									-- state_loop <= 4;
+								-- else
+									-- state_loop <= 5;
+								-- end if;
+                            -- else
+                                -- state_loop <= 5;
+                            -- end if;
                         -- if fingerprints remain, increment address and continue checking
                         else
                             fp_index <= fp_index + 1;
@@ -427,18 +433,30 @@ begin
                     else
                         state_loop <= 3;
                     end if;
+                when 4 =>
+                    if fp_match_index_s /= fp_match_index_zeros then
+                        n_detections_s <= n_detections_s + 1;								
+                        if send_results = '1' then
+                            tx_start <= '1';
+                            state_loop <= 5;
+                        else
+                            state_loop <= 6;
+                        end if;
+                    else
+                        state_loop <= 6;
+                    end if;
 				-- send results via serial
 				-- ********* create fifo of data to send out so that txing becomes non-blocking*****************************************************
-                when 4 =>
+                when 5 =>
                     tx_start <= '0';
                     if tx_finished = '1' then
-                        state_loop <= 5;
+                        state_loop <= 6;
                     else
-                        state_loop <= 4;
-                    end if;
-                when 5 =>
-                    if run_once = '1' then
                         state_loop <= 5;
+                    end if;
+                when 6 =>
+                    if run_once = '1' then
+                        state_loop <= 6;
                         run_adc <= '0';
                     else
                         state_loop <= 0;

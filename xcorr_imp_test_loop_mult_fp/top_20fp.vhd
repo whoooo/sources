@@ -7,7 +7,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
-entity top_v2 is
+entity top_20fp is
     port(   clk         : in std_logic;
             din         : in std_logic_vector(15 downto 0);
             busy        : in std_logic;
@@ -16,11 +16,11 @@ entity top_v2 is
             uart_out	: out std_logic;
             led         : out std_logic_vector(15 downto 0);
 			rc 			: out std_logic);  
-end top_v2;
+end top_20fp;
 
-architecture behavioral of top_v2 is
+architecture behavioral of top_20fp is
 
-constant fp_ram_addr_length_c      : natural := 14;
+constant fp_ram_addr_length_c      : natural := 17;
 constant samp_ram_addr_length_c    : natural := 13;
 constant samp_f_ram_addr_length_c  : natural := 13;
 constant adc_samp_rate_c           : natural := 48;
@@ -294,7 +294,7 @@ control : entity work.xcorr_ctrl_v2
                     samp_f_ram_addr_length  => samp_f_ram_addr_length_c,
                     adc_samp_rate           => adc_samp_rate_c,
                     mux_data_width          => mux_data_width_c,
-                    n_fingerprints			=> 0) -- actual number -1
+                    n_fingerprints			=> 19) -- actual number -1
 	Port map(       
                     clk 			        => clk,
                     scaling_sch 	        => scaling_sch,
@@ -433,7 +433,7 @@ mem_samp_f_0 : entity work.mem_samp_f
                     -- addrb => fp_ram_addrb,
                     -- doutb => fingerprint);
                     
-mem_fp_ram_16384_0 : entity work.mem_fp_ram_16384
+mem_fp20_0 : entity work.mem_20fp
     PORT MAP (      clka => clk,
                     wea => "0",
                     addra => (others => '0'),
