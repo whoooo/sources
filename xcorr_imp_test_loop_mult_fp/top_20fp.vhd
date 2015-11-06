@@ -1,7 +1,7 @@
 -- used for newer version of looping control logic- xcorr_ctrl, which combined functionality from multiple modules
 -- single fingerprint implementation which loops until threshold is surpassed, then sends data
 
--- v2: includes changes due to fixes in xcorr_ctrl_v2
+-- v2: includes changes due to fixes in xcorr_ctrl_v2. 20fp uses different mem than top_V2
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -115,10 +115,15 @@ signal xcorr, xcorr_out : std_logic_vector(63 downto 0) := (others => '0');
 -- results
 signal n_detections, n_detections_total : std_logic_vector(15 downto 0) := (others => '0');
 signal fp_match_index : std_logic_vector(31 downto 0) := (others => '0');
+signal clk_run_counts : natural range 0 to 2147483646 := 0;
+signal adc_run_counts : natural range 0 to 2147483646 := 0;
 
 signal scaling_sw : std_logic_vector(5 downto 0) := (others => '0');
 
 signal run_out : std_logic := '0';
+signal state_loop_out : natural range 0 to 5 := 0;
+signal adc_finished_out : std_logic := '0';
+signal state_counts : natural range 0 to 5 := 0;
 
 
 attribute keep : string;
@@ -164,6 +169,11 @@ attribute keep of event_tlast_missing_f				: signal is "true";
 attribute keep of event_status_channel_halt_f		: signal is "true";		
 attribute keep of event_data_in_channel_halt_f		: signal is "true";		
 attribute keep of event_data_out_channel_halt_f		: signal is "true";	
+attribute keep of state_loop_out            		: signal is "true";	
+attribute keep of clk_run_counts            		: signal is "true";	
+attribute keep of adc_run_counts            		: signal is "true";
+attribute keep of adc_finished_out            		: signal is "true";	
+	
 
 
 
@@ -174,6 +184,43 @@ begin
 scaling_sch <= "10101010101011";
 led(15) <= run_out;
 led(14) <= rst;
+
+counts : process(clk, rst)
+begin
+    if rst = '1' then
+        clk_run_counts <= 0;
+        adc_run_counts <= 0;
+        state_counts <= 0;
+    elsif rising_edge(clk) then
+        if state_counts = 0 then
+            clk_run_counts <= 0;
+            adc_run_counts <= 0;          
+            if run_out = '1' then
+                state_counts <= 1;
+            else
+                state_counts <= 0;
+            end if;
+        elsif state_counts = 1 then
+            adc_run_counts <= adc_run_counts + 1;
+            if adc_finished_out = '1' then
+                state_counts <= 2;
+            else
+                state_counts <= 1;
+            end if;
+        elsif state_counts = 2 then
+            clk_run_counts <= clk_run_counts + 1;
+            if state_loop_out = 6 then
+                state_counts <= 3;
+            else
+                state_counts <= 2;
+            end if;
+        elsif state_counts = 3 then
+            null;
+        end if;
+    end if;
+end process;
+            
+        
 
 
 -- use switch to control what's shown on led and amount of overlap (1/2-1/4)
@@ -228,10 +275,8 @@ begin
             when "11110" => threshold <= std_logic_vector(to_unsigned(38000, 32));
             when "11111" => threshold <= std_logic_vector(to_unsigned(39000, 32));
             when others => threshold <= std_logic_vector(to_unsigned(14000, 32));
-        end case;
-        
-    end if;
-    
+        end case;        
+    end if;   
 end process;
 
 process(clk)
@@ -303,6 +348,8 @@ control : entity work.xcorr_ctrl_v2
                     fft_rst	                => fft_rst,
                     rst_out                 => rst,
                     run_out                 => run_out,
+                    state_loop_out          => state_loop_out,
+                    adc_finished_out        => adc_finished_out,
                     -- led		                => led_s,
                     -- adc ports
                     busy                    => busy,

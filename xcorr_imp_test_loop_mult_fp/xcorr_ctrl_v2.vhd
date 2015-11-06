@@ -89,6 +89,8 @@ entity xcorr_ctrl_v2 is
 				fft_rst			        : out std_logic;
                 run_out                 : out std_logic;
                 rst_out                 : out std_logic;
+                state_loop_out          : out natural range 0 to 5;
+                adc_finished_out        : out std_logic;
 				
 				-- data to send over uart
 				n_detections			: out std_logic_vector(15 downto 0); -- 16 bit unsigned in matlab
@@ -234,6 +236,9 @@ begin
     scaling_sch_s <= scaling_sch;    
     n_fft_out <= n_fft;    
     rst_out <= rst;
+    
+    state_loop_out <= state_loop; -- used to tell counts process in top when to stop
+    adc_finished_out <= adc_finished;
 	
 	fp_match_index(n_fingerprints downto 0) <= fp_match_index_s;
 	n_detections_total <= std_logic_vector(to_unsigned(n_detections_total_s, 16));
