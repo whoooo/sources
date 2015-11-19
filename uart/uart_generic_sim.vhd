@@ -36,15 +36,15 @@ end uart_generic_sim;
 
 architecture Behavioral of uart_generic_sim is
 
-component uart_tx_generic 
-	generic(clock_counts_per_bit : integer := 434;
-			n_bytes : integer := 2);
-	port (	data_in : in std_logic_vector ((n_bytes * 8 - 1) downto 0); -- byte to be sent to host
-			byte_in_flag : in std_logic; -- notify component that data is ready to be sent
-			clk : in std_logic;
-			txfinished : out std_logic; -- flag which notifies control logic when data is finished being sent
-			txdata_out : out std_logic); -- data output to host
-end component;
+-- component uart_tx_generic 
+	-- generic(clock_counts_per_bit : integer := 434;
+			-- n_bytes : integer := 2);
+	-- port (	data_in : in std_logic_vector ((n_bytes * 8 - 1) downto 0); -- byte to be sent to host
+			-- byte_in_flag : in std_logic; -- notify component that data is ready to be sent
+			-- clk : in std_logic;
+			-- txfinished : out std_logic; -- flag which notifies control logic when data is finished being sent
+			-- txdata_out : out std_logic); -- data output to host
+-- end component;
 
 constant clk100_period : time := 10 ns;
 signal clk100, txfinished, txdata_out, byte_in_flag : std_logic := '0';
@@ -52,7 +52,7 @@ signal data_in : std_logic_vector(15 downto 0) := (others => '0');
 
 begin
 
-uut : uart_tx_generic
+uut : entity work.uart_tx_generic
 	generic map(clock_counts_per_bit => 434,
 				n_bytes => 2)
 	port map(	data_in => data_in,
